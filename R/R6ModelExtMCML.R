@@ -140,53 +140,83 @@ for more details")
       dsamps <- t(dsamps)
     }
     
+    if(method == "mcnr"){
+      start_pars <- theta[c(parInds$b,parInds$cov)]
+    } else if(method == "mcem"){
+      start_pars <- theta[all_pars]
+    }
     
+    fit_pars <- do.call(f_lik_optim,append(self$covariance$.__enclos_env__$private$D_data,
+                                           list(as.matrix(self$covariance$Z),
+                                                as.matrix(self$mean_function$X),
+                                                y,
+                                                dsamps,
+                                                theta[parInds$cov],
+                                                family=self$mean_function$family[[1]],
+                                                link=self$mean_function$family[[2]],
+                                                start = start_pars,
+                                                lower_b = rep(-Inf,P+1),
+                                                upper_b = rep(Inf,P+1),
+                                                lower_t = rep(1e-6,length(all_pars)-P),
+                                                upper_t = upper,
+                                                trace=trace,
+                                                mcnr = method=="mcnr",
+                                                importance = sim_lik_step)))
     # BETA PARAMETERS STEP
     if(method == "mcnr"){
-      beta_step <- mcnr_step(y = y,
-                             X= as.matrix(self$mean_function$X),
-                             Z = as.matrix(self$covariance$Z),
-                             beta = theta[parInds$b],
-                             u = dsamps,
-                             family = self$mean_function$family[[1]],
-                             link = self$mean_function$family[[2]])
-      
-      theta[parInds$b] <-  theta[parInds$b] + beta_step$beta_step
-      theta[parInds$sig] <- beta_step$sigmahat
-      
-      
+      theta[parInds$b] <-  drop(fit_pars$beta)
+      theta[parInds$sig] <- fit_pars$sigma
     } else if(method == "mcem"){
-      theta[mf_parInd] <- drop(l_lik_optim(as.matrix(self$covariance$Z),
-                                           as.matrix(self$mean_function$X),
-                                           y,
-                                           dsamps,
-                                           family=self$mean_function$family[[1]],
-                                           link=self$mean_function$family[[2]],
-                                           start = theta[mf_parInd],
-                                           lower = rep(-Inf,length(mf_parInd)),
-                                           upper = rep(Inf,length(mf_parInd)),
-                                           trace= trace))
-      
+      theta[mf_parInd] <- drop(fit_pars$beta)
     }
+    theta[parInds$cov] <- drop(fit_pars$theta)
+    
+    # # BETA PARAMETERS STEP
+    # if(method == "mcnr"){
+    #   beta_step <- mcnr_step(y = y,
+    #                          X= as.matrix(self$mean_function$X),
+    #                          Z = as.matrix(self$covariance$Z),
+    #                          beta = theta[parInds$b],
+    #                          u = dsamps,
+    #                          family = self$mean_function$family[[1]],
+    #                          link = self$mean_function$family[[2]])
+    #   
+    #   theta[parInds$b] <-  theta[parInds$b] + beta_step$beta_step
+    #   theta[parInds$sig] <- beta_step$sigmahat
+    #   
+    #   
+    # } else if(method == "mcem"){
+    #   theta[mf_parInd] <- drop(l_lik_optim(as.matrix(self$covariance$Z),
+    #                                        as.matrix(self$mean_function$X),
+    #                                        y,
+    #                                        dsamps,
+    #                                        family=self$mean_function$family[[1]],
+    #                                        link=self$mean_function$family[[2]],
+    #                                        start = theta[mf_parInd],
+    #                                        lower = rep(-Inf,length(mf_parInd)),
+    #                                        upper = rep(Inf,length(mf_parInd)),
+    #                                        trace= trace))
+    #   
+    # }
     
     
     # COVARIANCE PARAMETERS STEP
-    if(!skip_cov_optim){
-      upper <- rep(Inf,length(parInds$cov))
-      # if any are ar1, then need to set upper limit of 1
-      if(any(c(t(self$covariance$.__enclos_env__$private$D_data$func_def))==3)){
-        id3 <- which(rep(c(t(self$covariance$.__enclos_env__$private$D_data$func_def)),c(t(self$covariance$.__enclos_env__$private$D_data$N_par)))==3)
-        upper[id3] <- 1
-      }
-      
-      newtheta <- do.call(d_lik_optim,append(self$covariance$.__enclos_env__$private$D_data,
-                                             list(u = dsamps,
-                                                  start = c(theta[parInds$cov]),
-                                                  lower= rep(1e-6,length(parInds$cov)),
-                                                  upper= upper,
-                                                  trace=trace)))
-      theta[parInds$cov] <- drop(newtheta)
-    }
+    # if(!skip_cov_optim){
+    #   upper <- rep(Inf,length(parInds$cov))
+    #   # if any are ar1, then need to set upper limit of 1
+    #   if(any(c(t(self$covariance$.__enclos_env__$private$D_data$func_def))==3)){
+    #     id3 <- which(rep(c(t(self$covariance$.__enclos_env__$private$D_data$func_def)),c(t(self$covariance$.__enclos_env__$private$D_data$N_par)))==3)
+    #     upper[id3] <- 1
+    #   }
+    #   
+    #   newtheta <- do.call(d_lik_optim,append(self$covariance$.__enclos_env__$private$D_data,
+    #                                          list(u = dsamps,
+    #                                               start = c(theta[parInds$cov]),
+    #                                               lower= rep(1e-6,length(parInds$cov)),
+    #                                               upper= upper,
+    #                                               trace=trace)))
+    #   theta[parInds$cov] <- drop(newtheta)
+    # }
     
     if(verbose)cat("\ntheta:",theta[all_pars])
   }
@@ -195,23 +225,23 @@ for more details")
   if(not_conv&!no_warnings)warning(paste0("algorithm not converged. Max. difference between iterations :",max(abs(theta-thetanew)),". Suggest 
                                                  increasing m, or trying a different algorithm."))
   
-  if(sim_lik_step){
-    if(verbose)cat("\n\n")
-    if(verbose)message("Optimising simulated likelihood")
-    newtheta <- do.call(f_lik_optim,append(self$covariance$.__enclos_env__$private$D_data,
-                                           list(as.matrix(self$covariance$Z),
-                                                as.matrix(self$mean_function$X),
-                                                y,
-                                                dsamps,
-                                                theta[parInds$cov],
-                                                family=self$mean_function$family[[1]],
-                                                link=self$mean_function$family[[2]],
-                                                start = theta[all_pars],
-                                                lower = c(rep(-Inf,P),rep(1e-6,length(all_pars)-P)),
-                                                upper = c(rep(Inf,P),upper),
-                                                trace=trace)))
-    theta[all_pars] <- newtheta
-  }
+  # if(sim_lik_step){
+  #   if(verbose)cat("\n\n")
+  #   if(verbose)message("Optimising simulated likelihood")
+  #   newtheta <- do.call(f_lik_optim,append(self$covariance$.__enclos_env__$private$D_data,
+  #                                          list(as.matrix(self$covariance$Z),
+  #                                               as.matrix(self$mean_function$X),
+  #                                               y,
+  #                                               dsamps,
+  #                                               theta[parInds$cov],
+  #                                               family=self$mean_function$family[[1]],
+  #                                               link=self$mean_function$family[[2]],
+  #                                               start = theta[all_pars],
+  #                                               lower = c(rep(-Inf,P),rep(1e-6,length(all_pars)-P)),
+  #                                               upper = c(rep(Inf,P),upper),
+  #                                               trace=trace)))
+  #   theta[all_pars] <- newtheta
+  # }
   
   if(verbose)cat("\n\nCalculating standard errors...")
   
@@ -232,18 +262,36 @@ for more details")
     if(se.method=="lik"|se.method=="robust"){
       if(verbose&!robust)cat("using Hessian\n")
       if(verbose&robust)cat("using robust sandwich estimator\n")
-      hess <- tryCatch(do.call(f_lik_hess,append(self$covariance$.__enclos_env__$private$D_data,
-                                                 list(as.matrix(self$covariance$Z),
-                                                      as.matrix(self$mean_function$X),
-                                                      y,
-                                                      dsamps,
-                                                      theta[parInds$cov],
-                                                      family=self$mean_function$family[[1]],
-                                                      link=self$mean_function$family[[2]],
-                                                      start = theta[all_pars],
-                                                      lower = c(rep(-Inf,P),rep(1e-6,length(all_pars)-P)),
-                                                      upper = c(rep(Inf,P),upper),
-                                                      tol=fd_tol,importance = TRUE))),
+      # hess <- tryCatch(do.call(f_lik_hess,append(self$covariance$.__enclos_env__$private$D_data,
+      #                                            list(as.matrix(self$covariance$Z),
+      #                                                 as.matrix(self$mean_function$X),
+      #                                                 y,
+      #                                                 dsamps,
+      #                                                 theta[parInds$cov],
+      #                                                 family=self$mean_function$family[[1]],
+      #                                                 link=self$mean_function$family[[2]],
+      #                                                 start = theta[all_pars],
+      #                                                 lower = c(rep(-Inf,P),rep(1e-6,length(all_pars)-P)),
+      #                                                 upper = c(rep(Inf,P),upper),
+      #                                                 tol=fd_tol,importance = TRUE))),
+      #                  error=function(e)NULL)
+      
+      hess <- tryCatch(do.call(mcml_hess,append(self$covariance$.__enclos_env__$private$D_data,
+                                                  list(as.matrix(self$covariance$Z),
+                                                       as.matrix(self$mean_function$X),
+                                                       y,
+                                                       dsamps,
+                                                       theta[parInds$cov],
+                                                       family=self$mean_function$family[[1]],
+                                                       link=self$mean_function$family[[2]],
+                                                       start = start_pars,
+                                                       lower_b = rep(-Inf,P+1),
+                                                       upper_b = rep(Inf,P+1),
+                                                       lower_t = rep(1e-6,length(all_pars)-P),
+                                                       upper_t = upper,
+                                                       trace=trace,
+                                                       mcnr = method=="mcnr",
+                                                       importance = sim_lik_step))),
                        error=function(e)NULL)
       
       hessused <- TRUE
@@ -268,7 +316,19 @@ for more details")
         for(i in 1:ncol(Z_in)){
           id_in <- which(Z_in[,i]==1)
           g1 <- matrix(0,nrow=length(all_pars),ncol=1)
-          g1 <- do.call(f_lik_grad,append(self$covariance$.__enclos_env__$private$D_data,
+          # g1 <- do.call(f_lik_grad,append(self$covariance$.__enclos_env__$private$D_data,
+          #                                 list(as.matrix(self$covariance$Z)[id_in,,drop=FALSE],
+          #                                      as.matrix(self$mean_function$X)[id_in,,drop=FALSE],
+          #                                      y[id_in],
+          #                                      dsamps,
+          #                                      theta[parInds$cov],
+          #                                      family=self$mean_function$family[[1]],
+          #                                      link=self$mean_function$family[[2]],
+          #                                      start = theta[all_pars],
+          #                                      lower = c(rep(-Inf,P),rep(1e-5,length(all_pars)-P)),
+          #                                      upper = c(rep(Inf,P),upper),
+          #                                      tol=fd_tol)))
+          g1 <- do.call(f_hess,append(self$covariance$.__enclos_env__$private$D_data,
                                           list(as.matrix(self$covariance$Z)[id_in,,drop=FALSE],
                                                as.matrix(self$mean_function$X)[id_in,,drop=FALSE],
                                                y[id_in],
