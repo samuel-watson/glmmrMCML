@@ -1,4 +1,3 @@
-library(glmmrBase)
 Method$set("public","MCML",function(y,
                                     start,
                                     se.method = "lik",

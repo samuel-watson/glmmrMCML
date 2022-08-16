@@ -11,7 +11,6 @@ Maintainer: Sam Watson <S.I.Watson@bham.ac.uk>
 Description: Design analysis tools for any study design that can be represented or modelled as a generalised linear mixed model including cluster randomised trials, cohort studies, spatial and spatio-temporal epidemiological models, and split-plot designs. 
 License: GPL (>= 2)
 Imports: 
-    glmmrBase (>= 0.1.1),
     methods,
     Rcpp (>= 1.0.7),
     RcppParallel (>= 5.0.1),
@@ -38,6 +37,7 @@ Suggests:
     testthat
 Biarch: true
 Depends: 
-    R (>= 3.4.0)
+    R (>= 3.4.0),
+    glmmrBase (>= 0.1.1)
 SystemRequirements: GNU make
 Encoding: UTF-8
