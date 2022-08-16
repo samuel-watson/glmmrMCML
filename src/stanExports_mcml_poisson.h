@@ -35,9 +35,9 @@ stan::io::program_reader prog_reader__() {
     reader.add_event(0, 0, "start", "model_mcml_poisson");
     reader.add_event(1, 1, "include", "/stan_files/mcml_data.stan");
     reader.add_event(1, 0, "start", "/stan_files/mcml_data.stan");
-    reader.add_event(7, 6, "end", "/stan_files/mcml_data.stan");
-    reader.add_event(7, 2, "restart", "model_mcml_poisson");
-    reader.add_event(21, 14, "end", "model_mcml_poisson");
+    reader.add_event(8, 7, "end", "/stan_files/mcml_data.stan");
+    reader.add_event(8, 2, "restart", "model_mcml_poisson");
+    reader.add_event(22, 14, "end", "model_mcml_poisson");
     return reader;
 }
 #include <stan_meta_header.hpp>
@@ -138,7 +138,7 @@ public:
                     Z(j_1__, j_2__) = vals_r__[pos__++];
                 }
             }
-            current_statement_begin__ = 8;
+            current_statement_begin__ = 10;
             validate_non_negative_index("y", "N", N);
             context__.validate_dims("data initialization", "y", "int", context__.to_vec(N));
             y = std::vector<int>(N, int(0));
@@ -148,7 +148,7 @@ public:
             for (size_t k_0__ = 0; k_0__ < y_k_0_max__; ++k_0__) {
                 y[k_0__] = vals_i__[pos__++];
             }
-            current_statement_begin__ = 9;
+            current_statement_begin__ = 11;
             context__.validate_dims("data initialization", "type", "int", context__.to_vec());
             type = int(0);
             vals_i__ = context__.vals_i("type");
@@ -160,7 +160,7 @@ public:
             // validate, set parameter ranges
             num_params_r__ = 0U;
             param_ranges_i__.clear();
-            current_statement_begin__ = 12;
+            current_statement_begin__ = 14;
             validate_non_negative_index("gamma", "Q", Q);
             num_params_r__ += Q;
         } catch (const std::exception& e) {
@@ -180,7 +180,7 @@ public:
         (void) pos__; // dummy call to supress warning
         std::vector<double> vals_r__;
         std::vector<int> vals_i__;
-        current_statement_begin__ = 12;
+        current_statement_begin__ = 14;
         if (!(context__.contains_r("gamma")))
             stan::lang::rethrow_located(std::runtime_error(std::string("Variable gamma missing")), current_statement_begin__, prog_reader__());
         vals_r__ = context__.vals_r("gamma");
@@ -222,7 +222,7 @@ public:
         try {
             stan::io::reader<local_scalar_t__> in__(params_r__, params_i__);
             // model parameters
-            current_statement_begin__ = 12;
+            current_statement_begin__ = 14;
             Eigen::Matrix<local_scalar_t__, Eigen::Dynamic, 1> gamma;
             (void) gamma;  // dummy to suppress unused var warning
             if (jacobian__)
@@ -231,17 +231,17 @@ public:
                 gamma = in__.vector_constrain(Q);
             // model body
             {
-            current_statement_begin__ = 15;
+            current_statement_begin__ = 17;
             validate_non_negative_index("zeroes", "Q", Q);
             Eigen::Matrix<local_scalar_t__, Eigen::Dynamic, 1> zeroes(Q);
             stan::math::initialize(zeroes, DUMMY_VAR__);
             stan::math::fill(zeroes, DUMMY_VAR__);
             stan::math::assign(zeroes,rep_vector(0, Q));
-            current_statement_begin__ = 16;
+            current_statement_begin__ = 18;
             lp_accum__.add(multi_normal_cholesky_log<propto__>(gamma, zeroes, L));
-            current_statement_begin__ = 17;
+            current_statement_begin__ = 19;
             if (as_bool(logical_eq(type, 1))) {
-                current_statement_begin__ = 17;
+                current_statement_begin__ = 19;
                 lp_accum__.add(poisson_log_log<propto__>(y, add(Xb, multiply(Z, gamma))));
             }
             }

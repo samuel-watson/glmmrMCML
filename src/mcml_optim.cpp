@@ -98,23 +98,6 @@ double log_likelihood(arma::vec y,
   return logl;
 }
 
-
-inline arma::vec mod_inv_func(arma::vec mu,
-                              std::string link){
-  //arma::uword n = mu.n_elem;
-  if(link=="logit"){
-    mu = exp(mu) / (1+exp(mu));
-  }
-  if(link=="log"){
-    mu = exp(mu);
-  }
-  if(link=="probit"){
-    mu = gaussian_cdf_vec(mu);
-  }
-  
-  return mu;
-}
-
 class D_likelihood : public Functor {
   arma::uword B_;
   arma::uvec N_dim_;
@@ -145,11 +128,8 @@ public:
     cov_data_(cov_data), u_(u) {}
   double operator()(const vec &par) override{
     arma::uword nrow = u_.n_cols;
-    arma::field<arma::mat> Dfield = genD(B_,N_dim_,
-                                         N_func_,
-                                         func_def_,N_var_func_,
-                                         col_id_,N_par_,sum_N_par_,
-                                         cov_data_,par);
+    DMatrix dmat(B_,N_dim_,N_func_,func_def_,N_var_func_,col_id_,N_par_,sum_N_par_,cov_data_,par);
+    arma::field<arma::mat> Dfield = dmat.genD();
     arma::vec dmvvec(nrow,fill::zeros);
     double logdetD;
     arma::uword ndim_idx = 0;
@@ -405,12 +385,8 @@ public:
     arma::uword P = X_.n_cols;
     arma::uword Q = cov_par_fix_.n_elem;
     double du;
-    
-    arma::field<arma::mat> Dfield = genD(B_,N_dim_,
-                                         N_func_,
-                                         func_def_,N_var_func_,
-                                         col_id_,N_par_,sum_N_par_,
-                                         cov_data_,par.subvec(P,P+Q-1));
+    DMatrix dmat(B_,N_dim_,N_func_,func_def_,N_var_func_,col_id_,N_par_,sum_N_par_,cov_data_,par.subvec(P,P+Q-1));
+    arma::field<arma::mat> Dfield = dmat.genD();
     arma::vec numerD(niter,fill::zeros);
     double logdetD;
     arma::uword ndim_idx = 0;
@@ -461,11 +437,13 @@ public:
     
     if(importance_){
       // denominator density for importance sampling
-      Dfield = genD(B_,N_dim_,
-                    N_func_,
-                    func_def_,N_var_func_,
-                    col_id_,N_par_,sum_N_par_,
-                    cov_data_,cov_par_fix_);
+      DMatrix dmat(B_,N_dim_,N_func_,func_def_,N_var_func_,col_id_,N_par_,sum_N_par_,cov_data_,cov_par_fix_);
+      Dfield = dmat.genD();
+      // Dfield = genD(B_,N_dim_,
+      //               N_func_,
+      //               func_def_,N_var_func_,
+      //               col_id_,N_par_,sum_N_par_,
+      //               cov_data_,cov_par_fix_);
       arma::vec denomD(niter,fill::zeros);
       double logdetD;
       arma::uword ndim_idx = 0;
@@ -830,11 +808,14 @@ double aic_mcml(const arma::mat &Z,
     xb = X*beta_par;
   }
   
-  arma::field<arma::mat> Dfield = genD(B,N_dim,
-                                       N_func,
-                                       func_def,N_var_func,
-                                       col_id,N_par,sum_N_par,
-                                       cov_data,cov_par);
+  DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par);
+  arma::field<arma::mat> Dfield = dmat.genD();
+  
+  // arma::field<arma::mat> Dfield = genD(B,N_dim,
+  //                                      N_func,
+  //                                      func_def,N_var_func,
+  //                                      col_id,N_par,sum_N_par,
+  //                                      cov_data,cov_par);
   arma::vec dmvvec(niter,fill::zeros);
   double logdetD;
   arma::uword ndim_idx = 0;
