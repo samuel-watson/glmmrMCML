@@ -26,7 +26,7 @@ LinkingTo:
     rminqa (>= 0.1.0),
     rstan (>= 2.18.1),
     StanHeaders (>= 2.18.0)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.1
 NeedsCompilation: yes
 Author: Sam Watson [aut, cre],
         Yi Pan [aut]

@@ -1,4 +1,4 @@
-Method$set("public","MCML",function(y,
+Model$set("public","MCML",function(y,
                                     start,
                                     se.method = "lik",
                                     method = "mcnr",
@@ -141,11 +141,12 @@ for more details")
     
     if(method == "mcnr"){
       start_pars <- theta[c(parInds$b,parInds$cov)]
+      lower_b <- rep(-Inf, length(parInds$b))
     } else if(method == "mcem"){
       start_pars <- theta[all_pars]
+      lower_b <- c(rep(-Inf, length(parInds$b)),1e-6)
     }
-    
-    fit_pars <- do.call(f_lik_optim,append(self$covariance$.__enclos_env__$private$D_data,
+    fit_pars <- do.call(mcml_optim,append(self$covariance$.__enclos_env__$private$D_data,
                                            list(as.matrix(self$covariance$Z),
                                                 as.matrix(self$mean_function$X),
                                                 y,
@@ -154,10 +155,10 @@ for more details")
                                                 family=self$mean_function$family[[1]],
                                                 link=self$mean_function$family[[2]],
                                                 start = start_pars,
-                                                lower_b = rep(-Inf,P+1),
-                                                upper_b = rep(Inf,P+1),
-                                                lower_t = rep(1e-6,length(all_pars)-P),
-                                                upper_t = upper,
+                                                lower_b = lower_b,
+                                                upper_b = rep(Inf,length(lower_b)),
+                                                lower_t = rep(1e-6,length(parInds$cov)),
+                                                upper_t = rep(Inf,length(parInds$cov)),
                                                 trace=trace,
                                                 mcnr = method=="mcnr",
                                                 importance = sim_lik_step)))
@@ -247,7 +248,7 @@ for more details")
   if(family%in%c("gaussian")){
     mf_pars <- theta[c(parInds$b,parInds$sig)]
     mf_pars_names <- c(colnames(self$mean_function$X),"sigma")
-    upper <- c(upper,Inf)
+    #upper <- c(upper,Inf)
   } else {
     mf_pars <- theta[c(parInds$b)]
     mf_pars_names <- colnames(self$mean_function$X)
@@ -284,10 +285,10 @@ for more details")
                                                        family=self$mean_function$family[[1]],
                                                        link=self$mean_function$family[[2]],
                                                        start = start_pars,
-                                                       lower_b = rep(-Inf,P+1),
-                                                       upper_b = rep(Inf,P+1),
-                                                       lower_t = rep(1e-6,length(all_pars)-P),
-                                                       upper_t = upper,
+                                                       lower_b = lower_b,
+                                                       upper_b = rep(Inf,length(lower_b)),
+                                                       lower_t = rep(1e-6,length(parInds$cov)),
+                                                       upper_t = rep(Inf,length(parInds$cov)),
                                                        trace=trace,
                                                        mcnr = method=="mcnr",
                                                        importance = sim_lik_step))),
@@ -362,7 +363,7 @@ for more details")
       #if(verbose&se.method=="approx")cat("using approximation\n")
       hessused <- FALSE
       self$check(verbose=FALSE)
-      invM <- Matrix::solve(private$information_matrix())
+      invM <- Matrix::solve(self$information_matrix())
       if(!robust){
         SE[1:P] <- sqrt(Matrix::diag(invM))
       } else {
@@ -474,7 +475,7 @@ for more details")
   #self$check(verbose=FALSE)
   
   return(out)
-})
+},overwrite = TRUE)
 
 #'Markov Chain Monte Carlo Maximum Likelihood  model fitting
 #'
@@ -592,3 +593,18 @@ MCML <- function(y,
   return(NULL)
 }
 
+#' Returns the file name and type for MCNR function
+#' 
+#' Returns the file name and type for MCNR function
+#' 
+#' @param family family object
+#' @return list with filename and type
+mcnr_family <- function(family){
+  f1 <- family[[1]]
+  link <- family[[2]]
+  gaussian_list <- c("identity")
+  binomial_list <- c("logit","log","identity","probit")
+  poisson_list <- c("log")
+  type <- which(get(paste0(f1,"_list"))==link)
+  return(list(file = paste0("mcml_",f1,".stan"),type=type))
+}

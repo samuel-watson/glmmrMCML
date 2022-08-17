@@ -57,7 +57,6 @@ Rcpp::List mcml_optim(const arma::uword &B,
                       int trace,
                       bool mcnr = false,
                       bool importance = false){
-  
   mcmloptim mc(B,N_dim,
                N_func,
                func_def,N_var_func,
@@ -65,14 +64,15 @@ Rcpp::List mcml_optim(const arma::uword &B,
                cov_data,Z,X,y,u,
                cov_par_fix,family,
                link, start,lower_b,upper_b,
-               lower_t,upper_t,trace,mcnr);
+               lower_t,upper_t,trace);
   
-  mc.d_optim();
-  if(mcnr){
+  
+  if(!mcnr){
     mc.l_optim();
   } else {
     mc.mcnr();
   }
+  mc.d_optim();
   if(importance)mc.f_optim();
   
   arma::vec beta = mc.get_beta();
@@ -134,7 +134,6 @@ arma::mat mcml_hess(const arma::uword &B,
                       const arma::vec &lower_t,
                       const arma::vec &upper_t,
                       int trace,
-                      bool mcnr = false,
                       bool importance = false){
   
   mcmloptim mc(B,N_dim,
@@ -144,7 +143,7 @@ arma::mat mcml_hess(const arma::uword &B,
                cov_data,Z,X,y,u,
                cov_par_fix,family,
                link, start,lower_b,upper_b,
-               lower_t,upper_t,trace,mcnr);
+               lower_t,upper_t,trace);
   
   arma::mat hess = mc.f_hess();
   return hess;
@@ -211,7 +210,6 @@ double aic_mcml(const arma::mat &Z,
   
   DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par);
   arma::field<arma::mat> Dfield = dmat.genD();
-  
   // arma::field<arma::mat> Dfield = genD(B,N_dim,
   //                                      N_func,
   //                                      func_def,N_var_func,
