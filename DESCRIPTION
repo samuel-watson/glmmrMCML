@@ -14,18 +14,13 @@ Imports:
     methods,
     Rcpp (>= 1.0.7),
     RcppParallel (>= 5.0.1),
-    rstan (>= 2.18.1),
-    rstantools (>= 2.1.1)
+    Matrix
 LinkingTo: 
     glmmrBase (>= 0.1.1),
-    BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
     RcppArmadillo,
-    RcppEigen (>= 0.3.3.3.0),
     RcppParallel (>= 5.0.1),
-    rminqa (>= 0.1.0),
-    rstan (>= 2.18.1),
-    StanHeaders (>= 2.18.0)
+    rminqa (>= 0.1.0)
 RoxygenNote: 7.2.1
 NeedsCompilation: yes
 Author: Sam Watson [aut, cre],

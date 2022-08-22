@@ -57,15 +57,11 @@ Rcpp::List mcml_optim(const arma::uword &B,
                       int trace,
                       bool mcnr = false,
                       bool importance = false){
-  mcmloptim mc(B,N_dim,
-               N_func,
-               func_def,N_var_func,
-               col_id,N_par,sum_N_par,
-               cov_data,Z,X,y,u,
+  DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par_fix);
+  mcmloptim mc(&dmat,Z,X,y,u,
                cov_par_fix,family,
                link, start,lower_b,upper_b,
                lower_t,upper_t,trace);
-  
   
   if(!mcnr){
     mc.l_optim();
@@ -83,7 +79,7 @@ Rcpp::List mcml_optim(const arma::uword &B,
   return L;
 }
 
-//' Likelihood maximisation for the GLMM 
+//' Likelihood maximisation for the GLMM s
 //' 
 //' Likelihood maximisation for the GLMM
 //' @param B Integer specifying the number of blocks in the matrix
@@ -136,11 +132,8 @@ arma::mat mcml_hess(const arma::uword &B,
                       int trace,
                       bool importance = false){
   
-  mcmloptim mc(B,N_dim,
-               N_func,
-               func_def,N_var_func,
-               col_id,N_par,sum_N_par,
-               cov_data,Z,X,y,u,
+  DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par_fix);
+  mcmloptim mc(&dmat,Z,X,y,u,
                cov_par_fix,family,
                link, start,lower_b,upper_b,
                lower_t,upper_t,trace);
@@ -254,4 +247,3 @@ double aic_mcml(const arma::mat &Z,
   return (-2*( mean(ll) + mean(dmvvec) ) + 2*arma::as_scalar(dof)); 
   
 }
-

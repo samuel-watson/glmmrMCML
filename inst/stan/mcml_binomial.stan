@@ -1,18 +1,31 @@
+functions {
+  real partial_sum1_lpdf(array[] real y, int start, int end){
+    return std_normal_lpdf(y[start:end]);
+  }
+  real partial_sum2_lpmf(array[] int y,int start, int end, vector mu,int type){
+    real out;
+    if(type==1) out = bernoulli_logit_lpmf(y[start:end]|mu[start:end]);
+    if(type==2) out = bernoulli_lpmf(y[start:end]|exp(mu[start:end]));
+    if(type==3) out = bernoulli_lpmf(y[start:end]|mu[start:end]);
+    if(type==4) out = bernoulli_lpmf(y[start:end]|Phi_approx(mu[start:end]));
+    return out;
+  }
+}
 data {
-#include /stan_files/mcml_data.stan
-
-  int y[N];
-  int type; // 1 = logit, 2= log, 3=identity, 4= probit
+  int N; // sample size
+  int Q; // columns of Z, size of RE terms
+  vector[N] Xb;
+  matrix[N,Q] Z;
+  array[N] int y;
+  real sigma;
+  int type;
 }
 parameters {
-  vector[Q] gamma;
+  array[Q] real gamma;
 }
 model {
-  vector[Q] zeroes = rep_vector(0,Q);
-  gamma ~ multi_normal_cholesky(zeroes,L);
-  if(type==1)  y ~ bernoulli_logit(Xb + Z*gamma);
-  if(type==2) y~bernoulli(exp(Xb + Z*gamma));
-  if(type==3) y~bernoulli(Xb + Z*gamma);
-  if(type==4) y~bernoulli(Phi_approx(Xb + Z*gamma));
+  int grainsize = 1;
+  target += reduce_sum(partial_sum1_lpdf,gamma,grainsize);
+  target += reduce_sum(partial_sum2_lpmf,y,grainsize,Xb + Z*to_vector(gamma),type);
 }
 

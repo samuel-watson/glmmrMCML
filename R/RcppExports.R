@@ -33,7 +33,7 @@ mcml_optim <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, su
     .Call(`_glmmrMCML_mcml_optim`, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, lower_b, upper_b, lower_t, upper_t, trace, mcnr, importance)
 }
 
-#' Likelihood maximisation for the GLMM 
+#' Likelihood maximisation for the GLMM s
 #' 
 #' Likelihood maximisation for the GLMM
 #' @param B Integer specifying the number of blocks in the matrix

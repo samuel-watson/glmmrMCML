@@ -1,15 +1,26 @@
+functions {
+  real partial_sum1_lpdf(array[] real y, int start, int end){
+    return std_normal_lpdf(y[start:end]);
+  }
+  real partial_sum2_lpmf(array[] int y,int start, int end, vector mu){
+    return poisson_log_lpmf(y[start:end]|mu[start:end]);
+  }
+}
 data {
-#include /stan_files/mcml_data.stan
-
-  int y[N];
-  int type; // 1 = log
+  int N; // sample size
+  int Q; // columns of Z, size of RE terms
+  vector[N] Xb;
+  matrix[N,Q] Z;
+  array[N] int y;
+  real sigma;
+  int type;
 }
 parameters {
-  vector[Q] gamma;
+  array[Q] real gamma;
 }
 model {
-  vector[Q] zeroes = rep_vector(0,Q);
-  gamma ~ multi_normal_cholesky(zeroes,L);
-  if(type==1) y~poisson_log(Xb + Z*gamma);
+  int grainsize = 1;
+  target += reduce_sum(partial_sum1_lpdf,gamma,grainsize);
+  target += reduce_sum(partial_sum2_lpmf,y,grainsize,Xb + Z*to_vector(gamma));
 }
 
