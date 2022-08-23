@@ -18,7 +18,7 @@
 #' @method print mcml
 #' @export
 print.mcml <- function(x, ...){
-  if(missing(digits))digits <- 2
+  digits <- 2
   cat("Markov chain Monte Carlo Maximum Likelihood Estimation\nAlgorithm: ",
       ifelse(x$method=="mcem","Markov Chain Expectation Maximisation",
              "Markov Chain Newton-Raphson"),
@@ -78,7 +78,7 @@ are approximate based on the p-value, and assume normality.")
 #' @method summary mcml
 #' @export
 summary.mcml <- function(object,...){
-  if(missing(digits))digits <- 2
+  digits <- 2
   pars <- print(object)
   ## summarise random effects
   dfre <- data.frame(Mean = round(apply(object$re.samps,2,mean),digits = digits), 

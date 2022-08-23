@@ -236,7 +236,7 @@ for more details")
                                                        file_type$file,
                                                        package = "glmmrMCML",
                                                        mustWork = TRUE)
-                             mod <- cmdstanr::cmdstan_model(model_file)
+                             mod <- suppressMessages(cmdstanr::cmdstan_model(model_file))
                              ## ALGORITHMS
                              while(any(abs(theta-thetanew)>tol)&iter <= max.iter){
                                iter <- iter + 1
@@ -562,7 +562,8 @@ for more details")
                                          cov_form = as.character(self$covariance$formula),
                                          family = self$mean_function$family[[1]],
                                          link = self$mean_function$family[[2]],
-                                         re.samps = dsamps)
+                                         re.samps = dsamps,
+                                         iter = iter)
                              
                              class(out) <- "mcml"
                              
