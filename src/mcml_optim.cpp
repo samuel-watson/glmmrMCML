@@ -6,6 +6,9 @@ using namespace arma;
 
 //' Likelihood maximisation for the GLMM 
 //' 
+//' @details
+//' Member function `$get_D_data()` of the covariance class will provide the necessary objects to specify the covariance matrix
+//' 
 //' Likelihood maximisation for the GLMM
 //' @param B Integer specifying the number of blocks in the matrix
 //' @param N_dim Vector of integers, which each value specifying the dimension of each block
@@ -18,6 +21,7 @@ using namespace arma;
 //' where each slice the respective column indexes of `cov_data` for each function in the block
 //' @param N_par Matrix of integers of same size as `func_def` with each column specifying the number
 //' of parameters in the function in each block
+//' @param sum_N_par Total number of parameters
 //' @param cov_data 3D array (cube) holding the data for the covariance matrix where each of the B slices
 //' is the data required for each block
 //' @param Z Matrix Z of the GLMM
@@ -28,9 +32,9 @@ using namespace arma;
 //' @param family Character specifying the family
 //' @param link Character specifying the link function
 //' @param start Vector of starting values for the optimisation
-//' @param lower Vector of lower bounds for the model parameters
-//' @param upper Vector of upper bounds for the model parameters
 //' @param trace Integer indicating what to report to the console, 0= nothing, 1-3=detailed output
+//' @param mcnr Logical indicating whether to use Newton-Raphson (TRUE) or Expectation Maximisation (FALSE)
+//' @param importance Logical indicating whether to use importance sampling step
 //' @return A vector of the parameters that maximise the simulated likelihood
 // [[Rcpp::export]]
 Rcpp::List mcml_optim(const arma::uword &B,
@@ -77,6 +81,10 @@ Rcpp::List mcml_optim(const arma::uword &B,
 //' Likelihood maximisation for the GLMM s
 //' 
 //' Likelihood maximisation for the GLMM
+//' 
+//' @details
+//' Member function `$get_D_data()` of the covariance class will provide the necessary objects to specify the covariance matrix
+//' 
 //' @param B Integer specifying the number of blocks in the matrix
 //' @param N_dim Vector of integers, which each value specifying the dimension of each block
 //' @param N_func Vector of integers specifying the number of functions in the covariance function 
@@ -88,6 +96,7 @@ Rcpp::List mcml_optim(const arma::uword &B,
 //' where each slice the respective column indexes of `cov_data` for each function in the block
 //' @param N_par Matrix of integers of same size as `func_def` with each column specifying the number
 //' of parameters in the function in each block
+//' @param sum_N_par Total number of parameters
 //' @param cov_data 3D array (cube) holding the data for the covariance matrix where each of the B slices
 //' is the data required for each block
 //' @param Z Matrix Z of the GLMM
@@ -98,8 +107,6 @@ Rcpp::List mcml_optim(const arma::uword &B,
 //' @param family Character specifying the family
 //' @param link Character specifying the link function
 //' @param start Vector of starting values for the optimisation
-//' @param lower Vector of lower bounds for the model parameters
-//' @param upper Vector of upper bounds for the model parameters
 //' @param trace Integer indicating what to report to the console, 0= nothing, 1-3=detailed output
 //' @return A vector of the parameters that maximise the simulated likelihood
 // [[Rcpp::export]]
@@ -120,8 +127,7 @@ arma::mat mcml_hess(const arma::uword &B,
                       std::string family, 
                       std::string link,
                       arma::vec start,
-                      int trace,
-                      bool importance = false){
+                      int trace){
   
   DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par_fix);
   mcmloptim mc(&dmat,Z,X,y,u,
@@ -152,6 +158,7 @@ arma::mat mcml_hess(const arma::uword &B,
 //' where each slice the respective column indexes of `cov_data` for each function in the block
 //' @param N_par Matrix of integers of same size as `func_def` with each column specifying the number
 //' of parameters in the function in each block
+//' @param sum_N_par Total number of parameters
 //' @param cov_data 3D array (cube) holding the data for the covariance matrix where each of the B slices
 //' is the data required for each block
 //' @param beta_par Vector specifying the values of the mean function parameters

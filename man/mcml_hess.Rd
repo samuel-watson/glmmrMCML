@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{mcml_hess}
 \alias{mcml_hess}
-\title{Likelihood maximisation for the GLMM}
+\title{Likelihood maximisation for the GLMM s}
 \usage{
 mcml_hess(
   B,
@@ -22,12 +22,7 @@ mcml_hess(
   family,
   link,
   start,
-  lower_b,
-  upper_b,
-  lower_t,
-  upper_t,
-  trace,
-  importance = FALSE
+  trace
 )
 }
 \arguments{
@@ -49,6 +44,8 @@ where each slice the respective column indexes of `cov_data` for each function i
 \item{N_par}{Matrix of integers of same size as `func_def` with each column specifying the number
 of parameters in the function in each block}
 
+\item{sum_N_par}{Total number of parameters}
+
 \item{cov_data}{3D array (cube) holding the data for the covariance matrix where each of the B slices
 is the data required for each block}
 
@@ -69,14 +66,13 @@ is the data required for each block}
 \item{start}{Vector of starting values for the optimisation}
 
 \item{trace}{Integer indicating what to report to the console, 0= nothing, 1-3=detailed output}
-
-\item{lower}{Vector of lower bounds for the model parameters}
-
-\item{upper}{Vector of upper bounds for the model parameters}
 }
 \value{
 A vector of the parameters that maximise the simulated likelihood
 }
 \description{
 Likelihood maximisation for the GLMM
+}
+\details{
+Member function `$get_D_data()` of the covariance class will provide the necessary objects to specify the covariance matrix
 }

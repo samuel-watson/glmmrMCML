@@ -3,21 +3,22 @@
 #' Print method for class "`mcml`"
 #' 
 #' @param x an object of class "`mcml`" as a result of a call to MCML, see \link[glmmr]{Design}
-#' @param digits Number of digits to print
 #' @param ... Further arguments passed from other methods
 #' @details 
 #' `print.mcml` tries to replicate the output of other regression functions, such
 #' as `lm` and `lmer` reporting parameters, standard errors, and z- and p- statistics.
 #' The z- and p- statistics should be interpreted cautiously however, as generalised
-#' linear mixed models can suffer from severe small sample biases where the effective
+#' linear miobjected models can suffer from severe small sample biases where the effective
 #' sample size relates more to the higher levels of clustering than individual observations.
 #' 
 #' Parameters `b` are the mean function beta parameters, parameters `cov` are the
 #' covariance function parameters in the same order as `$covariance$parameters`, and
 #' parameters `d` are the estimated random effects.
 #' @return TBC
+#' @method print mcml
 #' @export
-print.mcml <- function(x, digits =2, ...){
+print.mcml <- function(x, ...){
+  if(missing(digits))digits <- 2
   cat("Markov chain Monte Carlo Maximum Likelihood Estimation\nAlgorithm: ",
       ifelse(x$method=="mcem","Markov Chain Expectation Maximisation",
              "Markov Chain Newton-Raphson"),
@@ -32,7 +33,7 @@ print.mcml <- function(x, digits =2, ...){
   cat("P-value and confidence interval method: ",semethod,"\n\n")
   pars <- x$coefficients[!grepl("d",x$coefficients$par),c('est','SE','lower','upper')]
   z <- pars$est/pars$SE
-  pars <- cbind(pars[,1:2],z=z,p=2*(1-pnorm(abs(z))),pars[,3:4])
+  pars <- cbind(pars[,1:2],z=z,p=2*(1-stats::pnorm(abs(z))),pars[,3:4])
   colnames(pars) <- c("Estimate","Std. Err.","z value","p value","2.5% CI","97.5% CI")
   rnames <- x$coefficients$par[!grepl("d",x$coefficients$par)]
   if(any(duplicated(rnames))){
@@ -60,14 +61,13 @@ are approximate based on the p-value, and assume normality.")
 #' 
 #' Summary method for class "`mcml`"
 #' 
-#' @param x an object of class "`mcml`" as a result of a call to MCML, see \link[glmmr]{Design}
-#' @param digits Number of digits to print
+#' @param object an object of class "`mcml`" as a result of a call to MCML, see \link[glmmr]{Design}
 #' @param ... Further arguments passed from other methods
 #' @details 
 #' `print.mcml` tries to replicate the output of other regression functions, such
 #' as `lm` and `lmer` reporting parameters, standard errors, and z- and p- statistics.
 #' The z- and p- statistics should be interpreted cautiously however, as generalised
-#' linear mixed models can suffer from severe small sample biases where the effective
+#' linear miobjected models can suffer from severe small sample biases where the effective
 #' sample size relates more to the higher levels of clustering than individual observations.
 #' TBC!!
 #' 
@@ -75,13 +75,15 @@ are approximate based on the p-value, and assume normality.")
 #' covariance function parameters in the same order as `$covariance$parameters`, and
 #' parameters `d` are the estimated random effects.
 #' @return TBC
+#' @method summary mcml
 #' @export
-summary.mcml <- function(x,digits=2,...){
-  pars <- print(x)
+summary.mcml <- function(object,...){
+  if(missing(digits))digits <- 2
+  pars <- print(object)
   ## summarise random effects
-  dfre <- data.frame(Mean = round(apply(x$re.samps,2,mean),digits = digits), 
-                     lower = round(apply(x$re.samps,2,function(i)quantile(i,0.025)),digits = digits),
-                     upper = round(apply(x$re.samps,2,function(i)quantile(i,0.975)),digits = digits))
+  dfre <- data.frame(Mean = round(apply(object$re.samps,2,mean),digits = digits), 
+                     lower = round(apply(object$re.samps,2,function(i)stats::quantile(i,0.025)),digits = digits),
+                     upper = round(apply(object$re.samps,2,function(i)stats::quantile(i,0.975)),digits = digits))
   colnames(dfre) <- c("Estimate","2.5% CI","97.5% CI")
   cat("Random effects estimates\n")
   print(dfre)

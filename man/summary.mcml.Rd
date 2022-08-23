@@ -4,12 +4,10 @@
 \alias{summary.mcml}
 \title{Summarises an mcml fit output}
 \usage{
-summary.mcml(x, digits = 2, ...)
+\method{summary}{mcml}(object, ...)
 }
 \arguments{
-\item{x}{an object of class "`mcml`" as a result of a call to MCML, see \link[glmmr]{Design}}
-
-\item{digits}{Number of digits to print}
+\item{object}{an object of class "`mcml`" as a result of a call to MCML, see \link[glmmr]{Design}}
 
 \item{...}{Further arguments passed from other methods}
 }
@@ -23,7 +21,7 @@ Summary method for class "`mcml`"
 `print.mcml` tries to replicate the output of other regression functions, such
 as `lm` and `lmer` reporting parameters, standard errors, and z- and p- statistics.
 The z- and p- statistics should be interpreted cautiously however, as generalised
-linear mixed models can suffer from severe small sample biases where the effective
+linear miobjected models can suffer from severe small sample biases where the effective
 sample size relates more to the higher levels of clustering than individual observations.
 TBC!!
 

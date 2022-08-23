@@ -1,7 +1,7 @@
 import(Rcpp)
 import(methods)
 import(Matrix)
-importFrom(rstan, sampling)
+import(glmmrBase)
 useDynLib(glmmrMCML, .registration=TRUE)
 importFrom(Rcpp, evalCpp)
 exportPattern("^[[:alpha:]]+")

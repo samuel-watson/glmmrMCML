@@ -13,7 +13,6 @@ License: GPL (>= 2)
 Imports: 
     methods,
     Rcpp (>= 1.0.7),
-    RcppParallel (>= 5.0.1),
     Matrix
 LinkingTo: 
     glmmrBase (>= 0.1.1),

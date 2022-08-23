@@ -178,6 +178,7 @@ Markov Chain Monte Carlo Maximum Likelihood  model fitting
   tol = 0.01,
   m = 100,
   max.iter = 30,
+  mcmc = TRUE,
   options = list()
 )}\if{html}{\out{</div>}}
 }
