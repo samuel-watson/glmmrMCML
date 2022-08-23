@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // mcml_optim
-Rcpp::List mcml_optim(const arma::uword& B, const arma::uvec& N_dim, const arma::uvec& N_func, const arma::umat& func_def, const arma::umat& N_var_func, const arma::ucube& col_id, const arma::umat& N_par, const arma::uword& sum_N_par, const arma::cube& cov_data, const arma::mat& Z, const arma::mat& X, const arma::vec& y, const arma::mat& u, const arma::vec& cov_par_fix, std::string family, std::string link, arma::vec start, const arma::vec& lower_b, const arma::vec& upper_b, const arma::vec& lower_t, const arma::vec& upper_t, int trace, bool mcnr, bool importance);
-RcppExport SEXP _glmmrMCML_mcml_optim(SEXP BSEXP, SEXP N_dimSEXP, SEXP N_funcSEXP, SEXP func_defSEXP, SEXP N_var_funcSEXP, SEXP col_idSEXP, SEXP N_parSEXP, SEXP sum_N_parSEXP, SEXP cov_dataSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP cov_par_fixSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP lower_bSEXP, SEXP upper_bSEXP, SEXP lower_tSEXP, SEXP upper_tSEXP, SEXP traceSEXP, SEXP mcnrSEXP, SEXP importanceSEXP) {
+Rcpp::List mcml_optim(const arma::uword& B, const arma::uvec& N_dim, const arma::uvec& N_func, const arma::umat& func_def, const arma::umat& N_var_func, const arma::ucube& col_id, const arma::umat& N_par, const arma::uword& sum_N_par, const arma::cube& cov_data, const arma::mat& Z, const arma::mat& X, const arma::vec& y, const arma::mat& u, const arma::vec& cov_par_fix, std::string family, std::string link, arma::vec start, int trace, bool mcnr, bool importance);
+RcppExport SEXP _glmmrMCML_mcml_optim(SEXP BSEXP, SEXP N_dimSEXP, SEXP N_funcSEXP, SEXP func_defSEXP, SEXP N_var_funcSEXP, SEXP col_idSEXP, SEXP N_parSEXP, SEXP sum_N_parSEXP, SEXP cov_dataSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP cov_par_fixSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP traceSEXP, SEXP mcnrSEXP, SEXP importanceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -34,20 +34,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
     Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type start(startSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type lower_b(lower_bSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type upper_b(upper_bSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type lower_t(lower_tSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type upper_t(upper_tSEXP);
     Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< bool >::type mcnr(mcnrSEXP);
     Rcpp::traits::input_parameter< bool >::type importance(importanceSEXP);
-    rcpp_result_gen = Rcpp::wrap(mcml_optim(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, lower_b, upper_b, lower_t, upper_t, trace, mcnr, importance));
+    rcpp_result_gen = Rcpp::wrap(mcml_optim(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, trace, mcnr, importance));
     return rcpp_result_gen;
 END_RCPP
 }
 // mcml_hess
-arma::mat mcml_hess(const arma::uword& B, const arma::uvec& N_dim, const arma::uvec& N_func, const arma::umat& func_def, const arma::umat& N_var_func, const arma::ucube& col_id, const arma::umat& N_par, const arma::uword& sum_N_par, const arma::cube& cov_data, const arma::mat& Z, const arma::mat& X, const arma::vec& y, const arma::mat& u, const arma::vec& cov_par_fix, std::string family, std::string link, arma::vec start, const arma::vec& lower_b, const arma::vec& upper_b, const arma::vec& lower_t, const arma::vec& upper_t, int trace, bool importance);
-RcppExport SEXP _glmmrMCML_mcml_hess(SEXP BSEXP, SEXP N_dimSEXP, SEXP N_funcSEXP, SEXP func_defSEXP, SEXP N_var_funcSEXP, SEXP col_idSEXP, SEXP N_parSEXP, SEXP sum_N_parSEXP, SEXP cov_dataSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP cov_par_fixSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP lower_bSEXP, SEXP upper_bSEXP, SEXP lower_tSEXP, SEXP upper_tSEXP, SEXP traceSEXP, SEXP importanceSEXP) {
+arma::mat mcml_hess(const arma::uword& B, const arma::uvec& N_dim, const arma::uvec& N_func, const arma::umat& func_def, const arma::umat& N_var_func, const arma::ucube& col_id, const arma::umat& N_par, const arma::uword& sum_N_par, const arma::cube& cov_data, const arma::mat& Z, const arma::mat& X, const arma::vec& y, const arma::mat& u, const arma::vec& cov_par_fix, std::string family, std::string link, arma::vec start, int trace, bool importance);
+RcppExport SEXP _glmmrMCML_mcml_hess(SEXP BSEXP, SEXP N_dimSEXP, SEXP N_funcSEXP, SEXP func_defSEXP, SEXP N_var_funcSEXP, SEXP col_idSEXP, SEXP N_parSEXP, SEXP sum_N_parSEXP, SEXP cov_dataSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP cov_par_fixSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP traceSEXP, SEXP importanceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -68,13 +64,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
     Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type start(startSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type lower_b(lower_bSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type upper_b(upper_bSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type lower_t(lower_tSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type upper_t(upper_tSEXP);
     Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< bool >::type importance(importanceSEXP);
-    rcpp_result_gen = Rcpp::wrap(mcml_hess(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, lower_b, upper_b, lower_t, upper_t, trace, importance));
+    rcpp_result_gen = Rcpp::wrap(mcml_hess(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, trace, importance));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -107,8 +99,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_glmmrMCML_mcml_optim", (DL_FUNC) &_glmmrMCML_mcml_optim, 24},
-    {"_glmmrMCML_mcml_hess", (DL_FUNC) &_glmmrMCML_mcml_hess, 23},
+    {"_glmmrMCML_mcml_optim", (DL_FUNC) &_glmmrMCML_mcml_optim, 20},
+    {"_glmmrMCML_mcml_hess", (DL_FUNC) &_glmmrMCML_mcml_hess, 19},
     {"_glmmrMCML_aic_mcml", (DL_FUNC) &_glmmrMCML_aic_mcml, 17},
     {NULL, NULL, 0}
 };

@@ -13,7 +13,10 @@ using namespace rminqa;
 
 using namespace Rcpp;
 using namespace arma;
+using namespace xsimd;
 
+// [[Rcpp::plugins(cpp14)]]
+// [[Rcpp::depends(RcppXsimd)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 
 inline double log_factorial_approx(int n){
@@ -83,13 +86,12 @@ inline double log_likelihood(arma::vec y,
   case 7:
     for(arma::uword i=0; i<n; i++){
       logl += -1*log(var_par) -0.5*log(2*arma::datum::pi) -
-        0.5*pow((y(i) - mu(i))/var_par,2);
+        0.5*pow((y(i) - mu(i))/var_par,2.0);
     }
     break;
   case 8:
     logl = 0;
   }
-  
   return logl;
 }
 
@@ -122,28 +124,33 @@ class L_likelihood : public Functor {
   arma::mat u_;
   std::string family_;
   std::string link_;
-  
+  bool fix_var_;
+  double fix_var_par_;
 public:
   L_likelihood(const arma::mat &Z, 
                const arma::mat &X,
                const arma::vec &y, 
                const arma::mat &u, 
                std::string family, 
-               std::string link) : 
-  Z_(Z), X_(X), y_(y), u_(u),family_(family) , link_(link) {}
+               std::string link,
+               bool fix_var = false,
+               double fix_var_par = 0) : 
+  Z_(Z), X_(X), y_(y), u_(u),family_(family) , link_(link), 
+  fix_var_(fix_var), fix_var_par_(fix_var_par){}
   double operator()(const vec &par) override{
     arma::uword niter = u_.n_cols;
-    arma::uword n = y_.n_elem;
-    arma::uword P = par.n_elem;
-    arma::vec xb(n);
-    double var_par;
-    if(family_=="gaussian"){
-      xb = X_*par.subvec(0,P-2);
-      var_par = par(P-1);
-    } else {
-      xb = X_*par;
-      var_par = 0;
-    }
+    //arma::uword n = y_.n_elem;
+    arma::uword P = X_.n_cols;
+    arma::vec xb = X_*par.subvec(0,P-1);
+    double var_par = family_=="gaussian"&&!fix_var_ ? par(P) : fix_var_par_;
+    
+    // if(family_=="gaussian"){
+    //   xb = X_*par.subvec(0,P-2);
+    //   var_par = par(P-1);
+    // } else {
+    //   xb = X_*par;
+    //   var_par = 0;
+    // }
     
     arma::vec ll(niter,fill::zeros);
     arma::mat zd = Z_ * u_;
@@ -166,6 +173,8 @@ class F_likelihood : public Functor {
   std::string family_;
   std::string link_;
   bool importance_;
+  bool fix_var_;
+  double fix_var_par_;
   
 public:
   F_likelihood(DMatrix* D,
@@ -176,10 +185,12 @@ public:
                arma::vec cov_par_fix,
                std::string family, 
                std::string link,
-               bool importance) : 
+               bool importance,
+               bool fix_var = false,
+               double fix_var_par = 0) : 
   D_(D) ,Z_(Z), X_(X), y_(y), 
   u_(u),cov_par_fix_(cov_par_fix), family_(family) , link_(link),
-  importance_(importance) {}
+  importance_(importance),fix_var_(fix_var), fix_var_par_(fix_var_par) {}
   double operator()(const vec &par) override{
     
     arma::uword niter = u_.n_cols;
@@ -187,43 +198,54 @@ public:
     arma::uword P = X_.n_cols;
     arma::uword Q = cov_par_fix_.n_elem;
     double du;
-    D_->gamma_ = par.subvec(P,P+Q-1);
-    arma::field<arma::mat> Dfield = D_->genD();
     arma::vec numerD(niter,fill::zeros);
-    double logdetD;
-    arma::uword ndim_idx = 0;
-    for(arma::uword b=0;b<D_->B_;b++){
-      if(all(D_->func_def_.row(b)==1)){
-#pragma omp parallel for collapse(2)
-        for(arma::uword j=0;j<niter;j++){
-          for(arma::uword k=0; k<Dfield[b].n_rows; k++){
-            numerD(j) += -0.5*log(Dfield[b](k,k)) -0.5*log(2*arma::datum::pi) -
-              0.5*pow(u_(ndim_idx+k,j),2)/Dfield[b](k,k);
-          }
-        }
-        
-      } else {
-        arma::mat invD = inv_sympd(Dfield[b]);
-        logdetD = arma::log_det_sympd(Dfield[b]);
-#pragma omp parallel for
-        for(arma::uword j=0;j<niter;j++){
-          numerD(j) += log_mv_gaussian_pdf(u_.col(j).subvec(ndim_idx,ndim_idx+D_->N_dim_(b)-1),
-                 invD,logdetD);
-        }
-      }
-      ndim_idx += D_->N_dim_(b);
+    arma::uword nrow = u_.n_cols;
+    D_->gamma_ = par.subvec(P,P+Q-1);
+    D_->gen_blocks_byfunc();
+    //#pragma omp parallel for
+    for(arma::uword j=0;j<nrow;j++){
+      numerD(j) += D_->loglik(u_.col(j));
     }
+    
+    
+//     D_->gamma_ = par.subvec(P,P+Q-1);
+//     arma::field<arma::mat> Dfield = D_->genD();
+//     arma::vec numerD(niter,fill::zeros);
+//     double logdetD;
+//     arma::uword ndim_idx = 0;
+//     for(arma::uword b=0;b<D_->B_;b++){
+//       if(all(D_->func_def_.row(b)==1)){
+// #pragma omp parallel for collapse(2)
+//         for(arma::uword j=0;j<niter;j++){
+//           for(arma::uword k=0; k<Dfield[b].n_rows; k++){
+//             numerD(j) += -0.5*log(Dfield[b](k,k)) -0.5*log(2*arma::datum::pi) -
+//               0.5*pow(u_(ndim_idx+k,j),2)/Dfield[b](k,k);
+//           }
+//         }
+//         
+//       } else {
+//         arma::mat invD = inv_sympd(Dfield[b]);
+//         logdetD = arma::log_det_sympd(Dfield[b]);
+// #pragma omp parallel for
+//         for(arma::uword j=0;j<niter;j++){
+//           numerD(j) += log_mv_gaussian_pdf(u_.col(j).subvec(ndim_idx,ndim_idx+D_->N_dim_(b)-1),
+//                  invD,logdetD);
+//         }
+//       }
+//       ndim_idx += D_->N_dim_(b);
+//     }
     
     // log likelihood for observations
     //arma::vec zd(n);
     arma::vec xb(n);
-    double var_par;
-    
-    if(family_=="gaussian"){
-      var_par = par(P+Q);
-    } else {
-      var_par = 0;
-    }
+    double var_par = family_=="gaussian"&&!fix_var_ ? par(P+Q) : fix_var_par_;
+    // double var_par;
+    // 
+    // if(family_=="gaussian"){
+    //   var_par = par(P+Q);
+    // } else {
+    //   var_par = 0;
+    // }
     
     xb = X_*par.subvec(0,P-1);
     arma::vec lfa(niter,fill::zeros);
@@ -239,32 +261,40 @@ public:
     
     if(importance_){
       // denominator density for importance sampling
-      D_->gamma_ = cov_par_fix_;
-      Dfield = D_->genD();
       arma::vec denomD(niter,fill::zeros);
-      double logdetD;
-      arma::uword ndim_idx = 0;
-      for(arma::uword b=0;b<D_->B_;b++){
-        if(all(D_->func_def_.row(b)==1)){
-#pragma omp parallel for collapse(2)
-          for(arma::uword j=0;j<niter;j++){
-            for(arma::uword k=0; k<Dfield[b].n_rows; k++){
-              denomD(j) += -0.5*log(Dfield[b](k,k)) -0.5*log(2*arma::datum::pi) -
-                0.5*pow(u_(ndim_idx+k,j),2)/Dfield[b](k,k);
-            }
-          }
-          
-        } else {
-          arma::mat invD = inv_sympd(Dfield[b]);
-          logdetD = arma::log_det_sympd(Dfield[b]);
-#pragma omp parallel for
-          for(arma::uword j=0;j<niter;j++){
-            denomD(j) += log_mv_gaussian_pdf(u_.col(j).subvec(ndim_idx,ndim_idx+D_->N_dim_(b)-1),
-                   invD,logdetD);
-          }
-        }
-        ndim_idx += D_->N_dim_(b);
+      D_->gamma_ = cov_par_fix_;
+      D_->gen_blocks_byfunc();
+      //#pragma omp parallel for
+      for(arma::uword j=0;j<nrow;j++){
+        denomD(j) += D_->loglik(u_.col(j));
       }
+      
+//       D_->gamma_ = cov_par_fix_;
+//       Dfield = D_->genD();
+//       arma::vec denomD(niter,fill::zeros);
+//       double logdetD;
+//       arma::uword ndim_idx = 0;
+//       for(arma::uword b=0;b<D_->B_;b++){
+//         if(all(D_->func_def_.row(b)==1)){
+// #pragma omp parallel for collapse(2)
+//           for(arma::uword j=0;j<niter;j++){
+//             for(arma::uword k=0; k<Dfield[b].n_rows; k++){
+//               denomD(j) += -0.5*log(Dfield[b](k,k)) -0.5*log(2*arma::datum::pi) -
+//                 0.5*pow(u_(ndim_idx+k,j),2)/Dfield[b](k,k);
+//             }
+//           }
+//           
+//         } else {
+//           arma::mat invD = inv_sympd(Dfield[b]);
+//           logdetD = arma::log_det_sympd(Dfield[b]);
+// #pragma omp parallel for
+//           for(arma::uword j=0;j<niter;j++){
+//             denomD(j) += log_mv_gaussian_pdf(u_.col(j).subvec(ndim_idx,ndim_idx+D_->N_dim_(b)-1),
+//                    invD,logdetD);
+//           }
+//         }
+//         ndim_idx += D_->N_dim_(b);
+//       }
       du = 0;
       for(arma::uword j=0;j<niter;j++){
         du  += exp(lfa(j)+numerD(j))/exp(denomD(j));
@@ -291,23 +321,26 @@ public:
     std::string family, 
     std::string link,
     const arma::vec &start,
-    const arma::vec &lower_b,
-    const arma::vec &upper_b,
-    const arma::vec &lower_t,
-    const arma::vec &upper_t,
     int trace
   ):
   D_(D),Z_(Z), X_(X), y_(y), 
   u_(u),cov_par_fix_(cov_par_fix), family_(family) , link_(link),
-  start_(start), lower_b_(lower_b), upper_b_(upper_b), lower_t_(lower_t),
-  upper_t_(upper_t), trace_(trace) {
-    P_ = lower_b_.size();
-    Q_ = lower_t_.size();
-    beta_ = arma::vec(P_,fill::zeros);
-    theta_ = arma::vec(Q_,fill::zeros);
-    sigma_ = 0;
+  start_(start), trace_(trace) {
+    P_ = X_.n_cols;
+    Q_ = cov_par_fix_.size();
+    beta_ = start.subvec(0,P_-1);
+    theta_ = start.subvec(P_,P_+Q_-1);
+    sigma_ = family_=="gaussian" ? start(P_+Q_) : 0;
     n_ = y_.n_elem;
     niter_ = u_.n_cols;
+    lower_b_ = arma::zeros<arma::vec>(P_);
+    lower_b_.for_each([](arma::mat::elem_type &val) { val = R_NegInf; });
+    upper_b_ = arma::zeros<arma::vec>(P_);
+    upper_b_.for_each([](arma::mat::elem_type &val) { val = R_PosInf; });
+    lower_t_ = arma::zeros<arma::vec>(Q_);
+    lower_t_.for_each([](arma::mat::elem_type &val) { val = 1e-6; });
+    upper_t_ = arma::zeros<arma::vec>(Q_);
+    upper_t_.for_each([](arma::mat::elem_type &val) { val = R_PosInf; });
   }
   
   DMatrix* D_;
@@ -319,10 +352,6 @@ public:
   std::string family_;
   std::string link_;
   arma::vec start_;
-  arma::vec lower_b_;
-  arma::vec upper_b_;
-  arma::vec lower_t_;
-  arma::vec upper_t_;
   int trace_;
   arma::uword P_;
   arma::uword Q_;
@@ -331,6 +360,10 @@ public:
   double sigma_;
   arma::uword n_;
   arma::uword niter_;
+  arma::vec lower_b_;
+  arma::vec upper_b_;
+  arma::vec lower_t_;
+  arma::vec upper_t_;
   
   void d_optim(){
     D_likelihood ddl(D_,u_);
@@ -346,27 +379,31 @@ public:
   
   void l_optim(){
     L_likelihood ldl(Z_,X_,y_,u_,family_,link_);
-    
     Rbobyqa<L_likelihood> opt;
-    opt.set_upper(upper_b_);
-    opt.set_lower(lower_b_);
     opt.control.iprint = trace_;
     arma::vec start_b = start_.subvec(0,P_-1);
+    if(family_=="gaussian")start_b = arma::join_cols(start_b,arma::vec({sigma_}));
     opt.minimize(ldl, start_b);
-    beta_ = opt.par();
+    beta_ = opt.par().subvec(0,P_-1);
+    if(family_=="gaussian") sigma_ = opt.par()(P_);
   }
   
   void f_optim(){
-    F_likelihood dl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,true);
-    
+    F_likelihood dl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,true,true,sigma_);
     Rbobyqa<F_likelihood> opt;
-    opt.set_lower(arma::join_cols(lower_b_,lower_t_));
-    opt.control.iprint = trace_;
+    arma::vec lower = lower_b_;
     arma::vec allpars = arma::join_cols(beta_,theta_);
+    if(family_=="gaussian"){
+      lower = arma::join_cols(lower,arma::vec({0}));
+      allpars = arma::join_cols(allpars,arma::vec({sigma_}));
+    }
+    opt.set_lower(arma::join_cols(lower,lower_t_));
+    opt.control.iprint = trace_;
     opt.minimize(dl, allpars);
     arma::vec pars = opt.par();
     beta_ = pars(0,P_-1);
     theta_ = pars(P_,P_+Q_-1);
+    if(family_=="gaussian") sigma_ = pars(P_+Q_);
   }
   
   void mcnr(){
@@ -387,7 +424,7 @@ public:
       resid = y_ - zd;
       sigmas(i) = arma::stddev(resid);
       wdiag = dhdmu(xb + zd,family_,link_);
-      wdiag2 = 1/arma::pow(wdiag, 2);
+      wdiag2 = 1/arma::pow(wdiag, 2.0);
       if(family_=="gaussian" || family_=="gamma") wdiag2 *= sigmas(i);
       for(arma::uword j = 0; j<n_; j++){
         XtWX += wdiag2(j)*(X_.row(j).t()*X_.row(j));
@@ -405,11 +442,12 @@ public:
   }
   
   arma::mat b_hessian(double tol = 1e-4){
-    L_likelihood hdl(Z_,X_,y_,u_,family_,link_);
-    
-    hdl.os.usebounds_ = 1;
-    hdl.os.lower_ = lower_b_;
-    hdl.os.upper_ = upper_b_;
+    L_likelihood hdl(Z_,X_,y_,u_,family_,link_,true,sigma_);
+    // arma::vec lower_b = arma::zeros<arma::vec>(P_);
+    // lower_b.for_each([](arma::mat::elem_type &val) { val = R_NegInf; });
+    // hdl.os.usebounds_ = 1;
+    // hdl.os.lower_ = lower_b_;
+    // hdl.os.upper_ = upper_b_;
     hdl.os.ndeps_ = arma::ones<arma::vec>(P_) * tol;
     arma::mat hessian(P_,P_,fill::zeros);
     arma::vec start_b = start_.subvec(0,P_-1);
@@ -418,7 +456,7 @@ public:
   }
   
   arma::vec f_grad(double tol = 1e-4){
-    F_likelihood fdl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,false);
+    F_likelihood fdl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,false,true,sigma_);
     fdl.os.usebounds_ = 1;
     fdl.os.lower_ = arma::join_cols(lower_b_,lower_t_);
     fdl.os.upper_ = arma::join_cols(upper_b_,upper_t_);
@@ -429,7 +467,11 @@ public:
   }
   
   arma::mat f_hess(double tol = 1e-4){
-    F_likelihood fhdl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,false);
+    F_likelihood fhdl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,false,true,sigma_);
+    arma::vec lower_b = arma::zeros<arma::vec>(P_);
+    lower_b.for_each([](arma::mat::elem_type &val) { val = R_NegInf; });
+    arma::vec upper_b = arma::zeros<arma::vec>(P_);
+    upper_b.for_each([](arma::mat::elem_type &val) { val = R_PosInf; });
     fhdl.os.usebounds_ = 1;
     fhdl.os.lower_ = arma::join_cols(lower_b_,lower_t_);
     fhdl.os.upper_ = arma::join_cols(upper_b_,upper_t_);

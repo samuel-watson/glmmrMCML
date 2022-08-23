@@ -50,18 +50,13 @@ Rcpp::List mcml_optim(const arma::uword &B,
                       std::string family, 
                       std::string link,
                       arma::vec start,
-                      const arma::vec &lower_b,
-                      const arma::vec &upper_b,
-                      const arma::vec &lower_t,
-                      const arma::vec &upper_t,
                       int trace,
                       bool mcnr = false,
                       bool importance = false){
   DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par_fix);
   mcmloptim mc(&dmat,Z,X,y,u,
                cov_par_fix,family,
-               link, start,lower_b,upper_b,
-               lower_t,upper_t,trace);
+               link, start,trace);
   
   if(!mcnr){
     mc.l_optim();
@@ -125,18 +120,13 @@ arma::mat mcml_hess(const arma::uword &B,
                       std::string family, 
                       std::string link,
                       arma::vec start,
-                      const arma::vec &lower_b,
-                      const arma::vec &upper_b,
-                      const arma::vec &lower_t,
-                      const arma::vec &upper_t,
                       int trace,
                       bool importance = false){
   
   DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par_fix);
   mcmloptim mc(&dmat,Z,X,y,u,
                cov_par_fix,family,
-               link, start,lower_b,upper_b,
-               lower_t,upper_t,trace);
+               link, start,trace);
   
   arma::mat hess = mc.f_hess();
   return hess;
@@ -202,35 +192,11 @@ double aic_mcml(const arma::mat &Z,
   }
   
   DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par);
-  arma::field<arma::mat> Dfield = dmat.genD();
-  // arma::field<arma::mat> Dfield = genD(B,N_dim,
-  //                                      N_func,
-  //                                      func_def,N_var_func,
-  //                                      col_id,N_par,sum_N_par,
-  //                                      cov_data,cov_par);
+  dmat.gen_blocks_byfunc();
   arma::vec dmvvec(niter,fill::zeros);
-  double logdetD;
-  arma::uword ndim_idx = 0;
-  for(arma::uword b=0;b<B;b++){
-    if(all(func_def.row(b)==1)){
-#pragma omp parallel for collapse(2)
-      for(arma::uword j=0;j<niter;j++){
-        for(arma::uword k=0; k<Dfield[b].n_rows; k++){
-          dmvvec(j) += -0.5*log(Dfield[b](k,k)) -0.5*log(2*arma::datum::pi) -
-            0.5*pow(u(ndim_idx+k,j),2)/Dfield[b](k,k);
-        }
-      }
-      
-    } else {
-      arma::mat invD = inv_sympd(Dfield[b]);
-      logdetD = arma::log_det_sympd(Dfield[b]);
-#pragma omp parallel for
-      for(arma::uword j=0;j<niter;j++){
-        dmvvec(j) += log_mv_gaussian_pdf(u.col(j).subvec(ndim_idx,ndim_idx+N_dim(b)-1),
-               invD,logdetD);
-      }
-    }
-    ndim_idx += N_dim(b);
+  //#pragma omp parallel for
+  for(arma::uword j=0;j<niter;j++){
+    dmvvec(j) += dmat.loglik(u.col(j));
   }
   
   arma::vec ll(niter,fill::zeros);

@@ -29,8 +29,8 @@
 #' @param upper Vector of upper bounds for the model parameters
 #' @param trace Integer indicating what to report to the console, 0= nothing, 1-3=detailed output
 #' @return A vector of the parameters that maximise the simulated likelihood
-mcml_optim <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, lower_b, upper_b, lower_t, upper_t, trace, mcnr = FALSE, importance = FALSE) {
-    .Call(`_glmmrMCML_mcml_optim`, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, lower_b, upper_b, lower_t, upper_t, trace, mcnr, importance)
+mcml_optim <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, trace, mcnr = FALSE, importance = FALSE) {
+    .Call(`_glmmrMCML_mcml_optim`, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, trace, mcnr, importance)
 }
 
 #' Likelihood maximisation for the GLMM s
@@ -61,8 +61,8 @@ mcml_optim <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, su
 #' @param upper Vector of upper bounds for the model parameters
 #' @param trace Integer indicating what to report to the console, 0= nothing, 1-3=detailed output
 #' @return A vector of the parameters that maximise the simulated likelihood
-mcml_hess <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, lower_b, upper_b, lower_t, upper_t, trace, importance = FALSE) {
-    .Call(`_glmmrMCML_mcml_hess`, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, lower_b, upper_b, lower_t, upper_t, trace, importance)
+mcml_hess <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, trace, importance = FALSE) {
+    .Call(`_glmmrMCML_mcml_hess`, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, trace, importance)
 }
 
 #' Calculates the Akaike Information Criterion for the GLMM

@@ -197,7 +197,7 @@ for more details")
                              if(family%in%c("gaussian")){
                                if(missing(start)){
                                  if(verbose)message("starting values not set, setting defaults")
-                                 start <- c(self$mean_function$parameters,unlist(self$covariance$parameters),self$var_par)
+                                 start <- c(self$mean_function$parameters,self$covariance$parameters,self$var_par)
                                }
                                if(length(start)!=(P+R+1))stop("wrong number of starting values")
                                all_pars <- 1:(P+R+1)
@@ -210,7 +210,7 @@ for more details")
                                  }
                                } else {
                                  if(verbose)message("starting values not set, setting defaults")
-                                 start <- c(self$mean_function$parameters,unlist(self$covariance$parameters))
+                                 start <- c(self$mean_function$parameters,self$covariance$parameters)
                                }
                                start <- c(start,1)
                                all_pars <- 1:(P+R)
@@ -242,17 +242,15 @@ for more details")
                                iter <- iter + 1
                                if(verbose)cat("\nIter: ",iter,": ")
                                thetanew <- theta
-                               
-                               self$covariance$parameters <- thetanew
                                Xb <- Matrix::drop(self$mean_function$X %*% thetanew[parInds$b])
-                               L <- as.matrix(blockMat(self$covariance$get_chol_D()))
+                               L <- as.matrix(blockMat(self$covariance$get_chol_D(thetanew[parInds$cov])))
                                
                                data <- list(
                                  N = self$n(),
                                  Q = Q,
                                  Xb = Xb,
                                  Z = as.matrix(des$covariance$Z)%*%L,
-                                 y = ysim,
+                                 y = y,
                                  sigma = thetanew[parInds$sig],
                                  type=as.numeric(file_type$type)
                                )
@@ -283,13 +281,13 @@ for more details")
                                # #dsamps <- matrix(dsamps[,1,],ncol=Q)
                                # dsamps <- t(dsamps$gamma %*% L)
                                
-                               if(method == "mcnr"){
-                                 start_pars <- theta[c(parInds$b,parInds$cov)]
-                                 lower_b <- rep(-Inf, length(parInds$b))
-                               } else if(method == "mcem"){
-                                 start_pars <- theta[all_pars]
-                                 lower_b <- c(rep(-Inf, length(parInds$b)),1e-6)
-                               }
+                               # if(method == "mcnr"){
+                               #   start_pars <- theta[c(parInds$b,parInds$cov)]
+                               #   lower_b <- rep(-Inf, length(parInds$b))
+                               # } else if(method == "mcem"){
+                               #   start_pars <- theta[all_pars]
+                               #   lower_b <- c(rep(-Inf, length(parInds$b)),1e-6)
+                               # }
                                fit_pars <- do.call(mcml_optim,append(self$covariance$.__enclos_env__$private$D_data,
                                                                      list(as.matrix(self$covariance$Z),
                                                                           as.matrix(self$mean_function$X),
@@ -298,24 +296,15 @@ for more details")
                                                                           theta[parInds$cov],
                                                                           family=self$mean_function$family[[1]],
                                                                           link=self$mean_function$family[[2]],
-                                                                          start = start_pars,
-                                                                          lower_b = lower_b,
-                                                                          upper_b = rep(Inf,length(lower_b)),
-                                                                          lower_t = rep(1e-6,length(parInds$cov)),
-                                                                          upper_t = rep(Inf,length(parInds$cov)),
+                                                                          start = theta,
                                                                           trace=trace,
                                                                           mcnr = method=="mcnr",
                                                                           importance = sim_lik_step)))
-                               # BETA PARAMETERS STEP
-                               if(method == "mcnr"){
-                                 theta[parInds$b] <-  drop(fit_pars$beta)
-                                 theta[parInds$sig] <- fit_pars$sigma
-                               } else if(method == "mcem"){
-                                 theta[mf_parInd] <- drop(fit_pars$beta)
-                               }
+                               
+                               theta[parInds$b] <-  drop(fit_pars$beta)
+                               if(self$mean_function$family[[1]] == "gaussian")theta[parInds$sig] <- fit_pars$sigma
                                theta[parInds$cov] <- drop(fit_pars$theta)
-                               
-                               
+                                 
                                if(verbose)cat("\ntheta:",theta[all_pars])
                              }
                              
@@ -353,8 +342,18 @@ for more details")
                              }
                              
                              
-                             cov_pars_names <- rep(as.character(unlist(rev(self$covariance$.__enclos_env__$private$flist))),
-                                                   max(unique(self$covariance$.__enclos_env__$private$D_data$N_par+1)))#paste0("cov",1:R)
+                             cov_nms <- as.character(unlist(rev(self$covariance$.__enclos_env__$private$flist)))
+                             cov_idx <- unique(self$covariance$.__enclos_env__$private$D_data$N_par)
+                             cov_pars_freq <- rep(0,length(cov_nms))
+                             for(b in 1:length(cov_nms)){
+                               if(b < length(cov_nms)){
+                                 cov_pars_freq[b] <- cov_idx[b+1,1] - cov_idx[b,1]
+                               } else {
+                                 cov_pars_freq[b] <- length(parInds$cov) - cov_idx[b,1]
+                               }
+                               
+                             }
+                             cov_pars_names <- rep(cov_nms,cov_pars_freq)
                              permutation <- FALSE
                              robust <- FALSE
                              if(se.method=="lik"|se.method=="robust"|se.method=="approx"){
@@ -383,11 +382,7 @@ for more details")
                                                                                 theta[parInds$cov],
                                                                                 family=self$mean_function$family[[1]],
                                                                                 link=self$mean_function$family[[2]],
-                                                                                start = start_pars,
-                                                                                lower_b = lower_b,
-                                                                                upper_b = rep(Inf,length(lower_b)),
-                                                                                lower_t = rep(1e-6,length(parInds$cov)),
-                                                                                upper_t = rep(Inf,length(parInds$cov)),
+                                                                                start = theta,
                                                                                 trace=trace,
                                                                                 mcnr = method=="mcnr",
                                                                                 importance = sim_lik_step))),
