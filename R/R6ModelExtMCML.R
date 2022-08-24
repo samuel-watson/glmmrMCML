@@ -249,7 +249,7 @@ for more details")
                                  N = self$n(),
                                  Q = Q,
                                  Xb = Xb,
-                                 Z = as.matrix(des$covariance$Z)%*%L,
+                                 Z = as.matrix(self$covariance$Z)%*%L,
                                  y = y,
                                  sigma = thetanew[parInds$sig],
                                  type=as.numeric(file_type$type)
