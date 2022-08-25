@@ -1,6 +1,10 @@
-#include "../inst/include/glmmrmcml.h"
+#include "../inst/include/glmmrmcmlclass.h"
 using namespace Rcpp;
 using namespace arma;
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -58,9 +62,7 @@ Rcpp::List mcml_optim(const arma::uword &B,
                       bool mcnr = false,
                       bool importance = false){
   DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par_fix);
-  mcmloptim mc(&dmat,Z,X,y,u,
-               cov_par_fix,family,
-               link, start,trace);
+  mcmloptim mc(&dmat,Z,X,y,u,cov_par_fix,family,link, start,trace);
   
   if(!mcnr){
     mc.l_optim();
@@ -130,9 +132,7 @@ arma::mat mcml_hess(const arma::uword &B,
                       int trace){
   
   DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par_fix);
-  mcmloptim mc(&dmat,Z,X,y,u,
-               cov_par_fix,family,
-               link, start,trace);
+  mcmloptim mc(&dmat,Z,X,y,u,cov_par_fix,family,link, start,trace);
   
   arma::mat hess = mc.f_hess();
   return hess;
@@ -210,11 +210,7 @@ double aic_mcml(const arma::mat &Z,
   arma::mat zd = Z * u;
 #pragma omp parallel for
   for(arma::uword j=0; j<niter ; j++){
-    ll(j) += log_likelihood(y,
-       xb + zd.col(j),
-       var_par,
-       family,
-       link);
+    ll(j) += log_likelihood(y,xb + zd.col(j),var_par,family,link);
   }
   
   return (-2*( mean(ll) + mean(dmvvec) ) + 2*arma::as_scalar(dof)); 
