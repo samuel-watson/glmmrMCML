@@ -62,7 +62,7 @@ Rcpp::List mcml_optim(const arma::uword &B,
                       bool mcnr = false,
                       bool importance = false){
   DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par_fix);
-  mcmloptim mc(&dmat,Z,X,y,u,cov_par_fix,family,link, start,trace);
+  mcmloptim<DMatrix> mc(&dmat,Z,X,y,u,cov_par_fix,family,link, start,trace);
   
   if(!mcnr){
     mc.l_optim();
@@ -132,7 +132,7 @@ arma::mat mcml_hess(const arma::uword &B,
                       int trace){
   
   DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,sum_N_par,cov_data,cov_par_fix);
-  mcmloptim mc(&dmat,Z,X,y,u,cov_par_fix,family,link, start,trace);
+  mcmloptim<DMatrix> mc(&dmat,Z,X,y,u,cov_par_fix,family,link, start,trace);
   
   arma::mat hess = mc.f_hess();
   return hess;

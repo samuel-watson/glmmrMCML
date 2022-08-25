@@ -14,18 +14,55 @@ using namespace rminqa;
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
+// template<typename T>
+// class covmat{
+//   public: 
+//     T obj_;
+//     covmat(T* obj) :
+//       obj_(obj){}
+//     
+//     double loglik(const arma::vec &u){
+//       return obj_->loglik(u);
+//     }
+//     
+//     void update_parameters(const arma::vec &gamma){
+//       obj_->update_parameters(gamma);
+//     }
+// };
+
+// class D_likelihood : public Functor {
+//   DMatrix* D_;
+//   arma::mat u_;
+//   
+// public:
+//   D_likelihood(DMatrix* D,
+//                const arma::mat &u) : 
+//   D_(D), u_(u) {}
+//   double operator()(const vec &par) override{
+//     arma::uword nrow = u_.n_cols;
+//     D_->gamma_ = par;
+//     D_->gen_blocks_byfunc();
+//     arma::vec logl(nrow);
+// #pragma omp parallel for
+//     for(arma::uword j=0;j<nrow;j++){
+//       logl(j) = D_->loglik(u_.col(j));
+//     }
+//     return -1*arma::mean(logl);
+//   }
+// };
+
+template<typename T>
 class D_likelihood : public Functor {
-  DMatrix* D_;
+  T* D_;
   arma::mat u_;
   
 public:
-  D_likelihood(DMatrix* D,
+  D_likelihood(T* D,
                const arma::mat &u) : 
   D_(D), u_(u) {}
   double operator()(const vec &par) override{
     arma::uword nrow = u_.n_cols;
-    D_->gamma_ = par;
-    D_->gen_blocks_byfunc();
+    D_->update_parameters(par);
     arma::vec logl(nrow);
 #pragma omp parallel for
     for(arma::uword j=0;j<nrow;j++){
@@ -72,8 +109,9 @@ public:
   }
 };
 
+template<typename T>
 class F_likelihood : public Functor {
-  DMatrix* D_;
+  T* D_;
   arma::mat Z_;
   arma::mat X_;
   arma::vec y_;
@@ -86,7 +124,7 @@ class F_likelihood : public Functor {
   double fix_var_par_;
   
 public:
-  F_likelihood(DMatrix* D,
+  F_likelihood(T* D,
                arma::mat Z, 
                arma::mat X,
                arma::vec y, 
@@ -109,8 +147,9 @@ public:
     double du;
     arma::vec numerD(niter,fill::zeros);
     arma::uword nrow = u_.n_cols;
-    D_->gamma_ = par.subvec(P,P+Q-1);
-    D_->gen_blocks_byfunc();
+    // D_->gamma_ = par.subvec(P,P+Q-1);
+    // D_->gen_blocks_byfunc();
+    D_->update_parameters(par.subvec(P,P+Q-1));
 #pragma omp parallel for
     for(arma::uword j=0;j<nrow;j++){
       numerD(j) += D_->loglik(u_.col(j));
@@ -134,8 +173,9 @@ public:
     if(importance_){
       // denominator density for importance sampling
       arma::vec denomD(niter,fill::zeros);
-      D_->gamma_ = cov_par_fix_;
-      D_->gen_blocks_byfunc();
+      // D_->gamma_ = cov_par_fix_;
+      // D_->gen_blocks_byfunc();
+      D_->update_parameters(cov_par_fix_);
 #pragma omp parallel for
       for(arma::uword j=0;j<nrow;j++){
         denomD(j) += D_->loglik(u_.col(j));
@@ -154,10 +194,11 @@ public:
   }
 };
 
+template<typename T>
 class mcmloptim{
 public:
   mcmloptim(
-    DMatrix* D,
+    T* D,
     const arma::mat &Z, 
     const arma::mat &X,
     const arma::vec &y, 
@@ -188,7 +229,7 @@ public:
     upper_t_.for_each([](arma::mat::elem_type &val) { val = R_PosInf; });
   }
   
-  DMatrix* D_;
+  T* D_;
   const arma::mat Z_;
   const arma::mat X_;
   const arma::vec y_;
@@ -211,9 +252,9 @@ public:
   arma::vec upper_t_;
   
   void d_optim(){
-    D_likelihood ddl(D_,u_);
+    D_likelihood<T> ddl(D_,u_);
     
-    Rbobyqa<D_likelihood> opt;
+    Rbobyqa<D_likelihood<T>> opt;
     opt.set_upper(upper_t_);
     opt.set_lower(lower_t_);
     opt.control.iprint = trace_;
@@ -234,8 +275,8 @@ public:
   }
   
   void f_optim(){
-    F_likelihood dl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,true,true,sigma_);
-    Rbobyqa<F_likelihood> opt;
+    F_likelihood<T> dl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,true,true,sigma_);
+    Rbobyqa<F_likelihood<T>> opt;
     arma::vec lower = lower_b_;
     arma::vec allpars = arma::join_cols(beta_,theta_);
     if(family_=="gaussian"){
@@ -295,7 +336,7 @@ public:
   }
   
   arma::vec f_grad(double tol = 1e-4){
-    F_likelihood fdl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,false,true,sigma_);
+    F_likelihood<T> fdl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,false,true,sigma_);
     fdl.os.usebounds_ = 1;
     fdl.os.lower_ = arma::join_cols(lower_b_,lower_t_);
     fdl.os.upper_ = arma::join_cols(upper_b_,upper_t_);
@@ -306,7 +347,7 @@ public:
   }
   
   arma::mat f_hess(double tol = 1e-4){
-    F_likelihood fhdl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,false,true,sigma_);
+    F_likelihood<T> fhdl(D_,Z_,X_,y_,u_,cov_par_fix_,family_,link_,false,true,sigma_);
     arma::vec lower_b = arma::zeros<arma::vec>(P_);
     lower_b.for_each([](arma::mat::elem_type &val) { val = R_NegInf; });
     arma::vec upper_b = arma::zeros<arma::vec>(P_);
