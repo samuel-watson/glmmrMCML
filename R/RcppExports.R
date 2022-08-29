@@ -33,8 +33,44 @@
 #' @param mcnr Logical indicating whether to use Newton-Raphson (TRUE) or Expectation Maximisation (FALSE)
 #' @param importance Logical indicating whether to use importance sampling step
 #' @return A vector of the parameters that maximise the simulated likelihood
-mcml_optim <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, trace, mcnr = FALSE, importance = FALSE) {
-    .Call(`_glmmrMCML_mcml_optim`, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, trace, mcnr, importance)
+mcml_optim <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, cov_data, Q, Z, X, y, u, family, link, start, trace, mcnr = FALSE, importance = FALSE) {
+    .Call(`_glmmrMCML_mcml_optim`, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, cov_data, Q, Z, X, y, u, family, link, start, trace, mcnr, importance)
+}
+
+#' Likelihood maximisation for the GLMM 
+#' 
+#' @details
+#' Member function `$get_D_data()` of the covariance class will provide the necessary objects to specify the covariance matrix
+#' 
+#' Likelihood maximisation for the GLMM
+#' @param B Integer specifying the number of blocks in the matrix
+#' @param N_dim Vector of integers, which each value specifying the dimension of each block
+#' @param N_func Vector of integers specifying the number of functions in the covariance function 
+#' for each block.
+#' @param func_def Matrix of integers where each column specifies the function definition for each function in each block. 
+#' @param N_var_func Matrix of integers of same size as `func_def` with each column specying the number 
+#' of variables in the argument to each function in each block
+#' @param col_id 3D array (cube) of integers of dimension length(func_def) x max(N_var_func) x B 
+#' where each slice the respective column indexes of `cov_data` for each function in the block
+#' @param N_par Matrix of integers of same size as `func_def` with each column specifying the number
+#' of parameters in the function in each block
+#' @param sum_N_par Total number of parameters
+#' @param cov_data 3D array (cube) holding the data for the covariance matrix where each of the B slices
+#' is the data required for each block
+#' @param Z Matrix Z of the GLMM
+#' @param X Matrix X of the GLMM
+#' @param y Vector of observations
+#' @param u Matrix of samples of the random effects. Each column is a sample.
+#' @param cov_par_fix A vector of covariance parameters for importance sampling
+#' @param family Character specifying the family
+#' @param link Character specifying the link function
+#' @param start Vector of starting values for the optimisation
+#' @param trace Integer indicating what to report to the console, 0= nothing, 1-3=detailed output
+#' @param mcnr Logical indicating whether to use Newton-Raphson (TRUE) or Expectation Maximisation (FALSE)
+#' @param importance Logical indicating whether to use importance sampling step
+#' @return A vector of the parameters that maximise the simulated likelihood
+mcml_optim_sparse <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, cov_data, Q, Ap, Ai, Z, X, y, u, family, link, start, trace, mcnr = FALSE, importance = FALSE) {
+    .Call(`_glmmrMCML_mcml_optim_sparse`, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, cov_data, Q, Ap, Ai, Z, X, y, u, family, link, start, trace, mcnr, importance)
 }
 
 #' Likelihood maximisation for the GLMM s
@@ -68,8 +104,8 @@ mcml_optim <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, su
 #' @param start Vector of starting values for the optimisation
 #' @param trace Integer indicating what to report to the console, 0= nothing, 1-3=detailed output
 #' @return A vector of the parameters that maximise the simulated likelihood
-mcml_hess <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, trace) {
-    .Call(`_glmmrMCML_mcml_hess`, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, Z, X, y, u, cov_par_fix, family, link, start, trace)
+mcml_hess <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, cov_data, Q, Z, X, y, u, family, link, start, tol = 1e-5, trace = 0L) {
+    .Call(`_glmmrMCML_mcml_hess`, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, cov_data, Q, Z, X, y, u, family, link, start, tol, trace)
 }
 
 #' Calculates the Akaike Information Criterion for the GLMM
@@ -98,7 +134,7 @@ mcml_hess <- function(B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum
 #' @param beta_par Vector specifying the values of the mean function parameters
 #' @param cov_par Vector specifying the values of the covariance parameters
 #' @return A matrix of the Hessian for each parameter
-aic_mcml <- function(Z, X, y, u, family, link, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, beta_par, cov_par) {
-    .Call(`_glmmrMCML_aic_mcml`, Z, X, y, u, family, link, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, sum_N_par, cov_data, beta_par, cov_par)
+aic_mcml <- function(Z, X, y, u, family, link, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, cov_data, beta_par, cov_par) {
+    .Call(`_glmmrMCML_aic_mcml`, Z, X, y, u, family, link, B, N_dim, N_func, func_def, N_var_func, col_id, N_par, cov_data, beta_par, cov_par)
 }
 
