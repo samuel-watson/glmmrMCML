@@ -150,7 +150,6 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                            m=100,
                                            max.iter = 30,
                                            sparse = FALSE,
-                                           approx = NULL,
                                            options = list()){
                              
                              # checks
@@ -236,21 +235,21 @@ for more details")
                                D <- as(self$covariance$D,"dsCMatrix")
                                Ap <- D@p
                                Ai <- D@i
-                               if(!is.null(approx)){
-                                 D <- Matrix::triu(D)
-                                 for(i in 1:Q){
-                                   if(i >(approx+1)){
-                                     idx <- order(D[,i],decreasing = FALSE)
-                                     idx <- idx[-(idx==i)]
-                                     D[idx[1:(Q-approx)],i] <- 0
-                                   }
-                                 }
-                                 D <- Matrix::forceSymmetric(D)
-                                 D <- as(D,"dsCMatrix")
-                                 print(D)
-                               }
+                               # if(!is.null(approx)){
+                               #   D <- Matrix::triu(D)
+                               #   for(i in 1:Q){
+                               #     if(i >(approx+1)){
+                               #       idx <- order(D[,i],decreasing = FALSE)
+                               #       idx <- idx[-(idx==i)]
+                               #       D[idx[1:(Q-approx)],i] <- 0
+                               #     }
+                               #   }
+                               #   D <- Matrix::forceSymmetric(D)
+                               #   D <- as(D,"dsCMatrix")
+                               #   print(D)
+                               # }
                                L <- Matrix::t(Matrix::chol(D))#SparseChol::LL_Cholesky(D)##
-                               print(L)
+                               # print(L)
                              } else {
                                L <- Matrix::Matrix(blockMat(self$covariance$get_chol_D()))
                              }
@@ -315,8 +314,8 @@ for more details")
                                # }
 
                                if(sparse){
-                                 fit_pars <- do.call(mcml_optim_sparse,append(self$covariance$get_D_data(),
-                                                                       list(Q=R,
+                                 fit_pars <- do.call(mcml_optim_sparse,list(self$covariance$get_D_data(),
+                                                                            Q=R,
                                                                             Ap=Ap,
                                                                             Ai=Ai,
                                                                             Z=as.matrix(self$covariance$Z),
@@ -328,10 +327,10 @@ for more details")
                                                                             start = theta,
                                                                             trace=trace,
                                                                             mcnr = method=="mcnr",
-                                                                            importance = sim_lik_step)))
+                                                                            importance = sim_lik_step))
                                } else {
-                                 fit_pars <- do.call(mcml_optim,append(self$covariance$get_D_data(),
-                                                                       list(R,
+                                 fit_pars <- do.call(mcml_optim,list(self$covariance$get_D_data(),
+                                                                            R,
                                                                             as.matrix(self$covariance$Z),
                                                                             as.matrix(self$mean_function$X),
                                                                             y,
@@ -341,7 +340,7 @@ for more details")
                                                                             start = theta,
                                                                             trace=trace,
                                                                             mcnr = method=="mcnr",
-                                                                            importance = sim_lik_step)))
+                                                                            importance = sim_lik_step))
                                }
 
                                theta[parInds$b] <-  drop(fit_pars$beta)
@@ -351,7 +350,6 @@ for more details")
                                if(sparse){
                                  L <- SparseChol::sparse_L(fit_pars)
                                  L <- L%*%Matrix::Diagonal(x=sqrt(fit_pars$D))
-                                 print(L)
                                } else {
                                  L <- Matrix::Matrix(blockMat(self$covariance$get_chol_D(thetanew[parInds$cov])))
                                }
@@ -426,8 +424,8 @@ for more details")
                                  #                                                start = theta,
                                  #                                                trace=trace))),
                                  #                  error=function(e)NULL)
-                                hess <- do.call(mcml_hess,append(self$covariance$get_D_data(),
-                                                          list(R,
+                                hess <- do.call(mcml_hess,list(self$covariance$get_D_data(),
+                                                               R,
                                                                as.matrix(self$covariance$Z),
                                                                as.matrix(self$mean_function$X),
                                                                y,
@@ -436,7 +434,7 @@ for more details")
                                                                link=self$mean_function$family[[2]],
                                                                start = theta,
                                                                tol = fd_tol,
-                                                               trace=trace)))
+                                                               trace=trace))
                                  hessused <- TRUE
                                  semat <- tryCatch(Matrix::solve(hess),error=function(e)NULL)
                                  # if(se.method == "robust"&!is.null(semat)){
@@ -578,15 +576,16 @@ for more details")
                              
                              rownames(dsamps) <- Reduce(c,rev(self$covariance$.__enclos_env__$private$flistlabs))
                              ## model summary statistics
-                             aic_data <- append(list(Z = as.matrix(self$covariance$Z),
-                                                     X = as.matrix(self$mean_function$X),
-                                                     y = y,
-                                                     u = as.matrix(dsamps),
-                                                     family = self$mean_function$family[[1]],
-                                                     link=self$mean_function$family[[2]]), 
-                                                self$covariance$get_D_data())
-                             aic <- do.call(aic_mcml,append(aic_data,list(beta_par = theta[mf_parInd],
-                                                                          cov_par = theta[parInds$cov])))
+                             aic_data <- 
+                             aic <- do.call(aic_mcml,list(Z = as.matrix(self$covariance$Z),
+                                                                 X = as.matrix(self$mean_function$X),
+                                                                 y = y,
+                                                                 u = as.matrix(dsamps),
+                                                                 family = self$mean_function$family[[1]],
+                                                                 link=self$mean_function$family[[2]],
+                                                          self$covariance$get_D_data(),
+                                                          beta_par = theta[mf_parInd],
+                                                          cov_par = theta[parInds$cov]))
                              
                              xb <- self$mean_function$X %*% theta[parInds$b]
                              zd <- self$covariance$Z %*% rowMeans(dsamps)

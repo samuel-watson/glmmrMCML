@@ -41,14 +41,7 @@ using namespace arma;
 //' @param importance Logical indicating whether to use importance sampling step
 //' @return A vector of the parameters that maximise the simulated likelihood
 // [[Rcpp::export]]
-Rcpp::List mcml_optim(const arma::uword &B,
-                      const arma::uvec &N_dim,
-                      const arma::uvec &N_func,
-                      const arma::umat &func_def,
-                      const arma::umat &N_var_func,
-                      const arma::ucube &col_id,
-                      const arma::umat &N_par,
-                      const arma::cube &cov_data,
+Rcpp::List mcml_optim(Rcpp::List D_data,
                       int Q,
                       const arma::mat &Z, 
                       const arma::mat &X,
@@ -60,7 +53,7 @@ Rcpp::List mcml_optim(const arma::uword &B,
                       int trace,
                       bool mcnr = false,
                       bool importance = false){
-  DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,cov_data,start.subvec(X.n_cols,X.n_cols+Q-1));
+  DMatrix dmat(D_data,start.subvec(X.n_cols,X.n_cols+Q-1));
   mcmloptim<DMatrix> mc(&dmat,Z,X,y,u,Q,family,link, start,trace);
   
   if(!mcnr){
@@ -112,14 +105,7 @@ Rcpp::List mcml_optim(const arma::uword &B,
 //' @param importance Logical indicating whether to use importance sampling step
 //' @return A vector of the parameters that maximise the simulated likelihood
 // [[Rcpp::export]]
-Rcpp::List mcml_optim_sparse(const arma::uword &B,
-                             const arma::uvec &N_dim,
-                             const arma::uvec &N_func,
-                             const arma::umat &func_def,
-                             const arma::umat &N_var_func,
-                             const arma::ucube &col_id,
-                             const arma::umat &N_par,
-                             const arma::cube &cov_data,
+Rcpp::List mcml_optim_sparse(Rcpp::List D_data,
                              int Q,
                              const arma::uvec &Ap,
                              const arma::uvec &Ai,
@@ -134,8 +120,7 @@ Rcpp::List mcml_optim_sparse(const arma::uword &B,
                              bool mcnr = false,
                              bool importance = false){
                       
-  SparseDMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,cov_data,start.subvec(X.n_cols,X.n_cols+Q-1),
-                     Ap,Ai);
+  SparseDMatrix dmat(D_data,start.subvec(X.n_cols,X.n_cols+Q-1),Ap,Ai);
   mcmloptim<SparseDMatrix> mc(&dmat,Z,X,y,u,Q,family,link, start,trace);
   if(!mcnr){
     mc.l_optim();
@@ -187,14 +172,7 @@ Rcpp::List mcml_optim_sparse(const arma::uword &B,
 //' @param trace Integer indicating what to report to the console, 0= nothing, 1-3=detailed output
 //' @return A vector of the parameters that maximise the simulated likelihood
 // [[Rcpp::export]]
-arma::mat mcml_hess(const arma::uword &B,
-                      const arma::uvec &N_dim,
-                      const arma::uvec &N_func,
-                      const arma::umat &func_def,
-                      const arma::umat &N_var_func,
-                      const arma::ucube &col_id,
-                      const arma::umat &N_par,
-                      const arma::cube &cov_data,
+arma::mat mcml_hess(Rcpp::List D_data,
                       int Q,
                       const arma::mat &Z, 
                       const arma::mat &X,
@@ -206,7 +184,7 @@ arma::mat mcml_hess(const arma::uword &B,
                       double tol = 1e-5,
                       int trace = 0){
   
-  DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,cov_data,start.subvec(X.n_cols,X.n_cols+Q-1));
+  DMatrix dmat(D_data,start.subvec(X.n_cols,X.n_cols+Q-1));
   mcmloptim<DMatrix> mc(&dmat,Z,X,y,u,Q,family,link, start,trace);
   
   arma::mat hess = mc.f_hess(tol);
@@ -246,14 +224,7 @@ double aic_mcml(const arma::mat &Z,
                 const arma::mat &u, 
                 std::string family, 
                 std::string link,
-                const arma::uword &B,
-                const arma::uvec &N_dim,
-                const arma::uvec &N_func,
-                const arma::umat &func_def,
-                const arma::umat &N_var_func,
-                const arma::ucube &col_id,
-                const arma::umat &N_par,
-                const arma::cube &cov_data,
+                Rcpp::List D_data,
                 const arma::vec& beta_par,
                 const arma::vec& cov_par){
   arma::uword niter = u.n_cols;
@@ -272,7 +243,7 @@ double aic_mcml(const arma::mat &Z,
     xb = X*beta_par;
   }
   
-  DMatrix dmat(B,N_dim,N_func,func_def,N_var_func,col_id,N_par,cov_data,cov_par);
+  DMatrix dmat(D_data,cov_par);
   dmat.gen_blocks_byfunc();
   arma::vec dmvvec(niter,fill::zeros);
   //#pragma omp parallel for

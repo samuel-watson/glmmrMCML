@@ -353,20 +353,20 @@ public:
 
 class SparseDMatrix {
 public:
-  SparseDMatrix(const arma::uword &B,
-                const arma::uvec &N_dim,
-                const arma::uvec &N_func,
-                const arma::umat &func_def,
-                const arma::umat &N_var_func,
-                const arma::ucube &col_id,
-                const arma::umat &N_par,
-                const arma::cube &cov_data,
+  SparseDMatrix(Rcpp::List D_data,
                 const arma::vec &gamma,
                 arma::uvec Ap,
                 arma::uvec Ai):
-  B_(B), N_dim_(N_dim), N_func_(N_func), func_def_(func_def),
-  N_var_func_(N_var_func), col_id_(col_id), N_par_(N_par),
-  cov_data_(cov_data), gamma_(gamma){
+  gamma_(gamma){
+    B_ = as<arma::uword>(D_data["B"]);
+    N_dim_ = as<arma::uvec>(D_data["N_dim"]);
+    N_func_ = as<arma::uvec>(D_data["N_func"]);
+    func_def_ = as<arma::umat>(D_data["func_def"]);
+    N_var_func_ = as<arma::umat>(D_data["N_var_func"]);
+    eff_range_ = as<arma::mat>(D_data["eff_range"]);
+    col_id_ = as<arma::ucube>(D_data["col_id"]);
+    N_par_ = as<arma::umat>(D_data["N_par"]);
+    cov_data_ = as<arma::cube>(D_data["cov_data"]);
     Ap_ = arma::conv_to<std::vector<int>>::from(Ap);
     Ai_ = arma::conv_to<std::vector<int>>::from(Ai);
     nx_ = Ai.size();
@@ -383,6 +383,7 @@ public:
   arma::uvec N_func_;
   arma::umat func_def_;
   arma::umat N_var_func_;
+  arma::mat eff_range_;
   arma::ucube col_id_;
   arma::umat N_par_;
   arma::cube cov_data_;
@@ -413,6 +414,7 @@ public:
                               col_id_.slice(b),
                               N_par_.row(b).t() - min(N_par_.row(b)),
                               cov_data_.slice(b),
+                              eff_range_.row(b).t(),
                               gamma_.subvec(min(N_par_.row(b)),glim-1));
 
       for(int i = llim; i<ulim; i++){
