@@ -11,7 +11,7 @@ using namespace rminqa;
 
 //We have to add a second header as rcpp will include the other header 
 // in the rcpp exports file, which loads rminqa twice, causing a
-// multiple definitions error on windows machines
+// multiple definitions error on windows machines 
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

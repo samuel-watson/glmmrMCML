@@ -67,21 +67,10 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            #'
                            #'There are several options that can be specified to the function using the `options` argument. 
                            #'The options should be provided as a list, e.g. `options = list(method="mcnr")`. The possible options are:
-                           #'* `b_se_only` TRUE (calculate standard errors of the mean function parameters only) or FALSE (calculate
-                           #'all standard errors), default it FALSE.
-                           #'* `use_cmdstanr` TRUE (uses `cmdstanr` for the MCMC sampling, requires cmdstanr), or FALSE (uses `rstan`). Default is FALSE.
-                           #'* `skip_cov_optim` TRUE (skips the covariance parameter estimation step, and uses the values covariance$parameters), or 
-                           #'FALSE (run the whole algorithm)], default is FALSE
                            #'* `sim_lik_step` TRUE (conduct a simulated likelihood step at the end of the algorithm), or FALSE (does
                            #'not do this step), defaults to FALSE.
                            #'* `no_warnings` TRUE (do not report any warnings) or FALSE (report warnings), default to FALSE
-                           #'* `perm_type` Either `cov` (use weighted test statistic in permutation test) or `unw` (use unweighted
-                           #' test statistic), defaults to `cov`. See `permutation_test()`.
-                           #' * `perm_iter` Number of iterations for the permutation test, default is 100.
-                           #' * `perm_parallel` TRUE (run permuation test in parallel) or FALSE (runs on a single thread), default to TRUE
                            #' * `warmup_iter` Number of warmup iterations on each iteration for the MCMC sampler, default is 500
-                           #' * `perm_ci_steps` Number of steps for the confidence interval search procedure if using the permutation
-                           #' test, default is 1000. See `permutation_test()`.
                            #' * `fd_tol` The tolerance of the first difference method to estimate the Hessian and Gradient, default 
                            #' is 1e-4.
                            #'
@@ -90,7 +79,6 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            #'If this is not specified then the parameter values stored in the linked mean function object will be used.
                            #'@param se.method One of either `'lik'`, `'approx'`, `'perm'`, or `'none'`, see Details.
                            #'@param method The MCML algorithm to use, either `mcem` or `mcnr`, see Details. Default is `mcem`.
-                           #'@param permutation.par Optional. Integer specifing the index of the parameter if permutation tests are being used.
                            #'@param verbose Logical indicating whether to provide detailed output, defaults to TRUE.
                            #'@param tol Numeric value, tolerance of the MCML algorithm, the maximum difference in parameter estimates 
                            #'between iterations at which to stop the algorithm.
@@ -143,7 +131,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            MCML = function(y,
                                            start,
                                            se.method = "lik",
-                                           method = "mcnr",
+                                           method = "mcem",
                                            permutation.par,
                                            verbose=TRUE,
                                            tol = 1e-2,
@@ -305,15 +293,7 @@ for more details")
                                # #dsamps <- matrix(dsamps[,1,],ncol=Q)
                                # dsamps <- t(dsamps$gamma %*% L)
                                
-                               # if(method == "mcnr"){
-                               #   start_pars <- theta[c(parInds$b,parInds$cov)]
-                               #   lower_b <- rep(-Inf, length(parInds$b))
-                               # } else if(method == "mcem"){
-                               #   start_pars <- theta[all_pars]
-                               #   lower_b <- c(rep(-Inf, length(parInds$b)),1e-6)
-                               # }
-
-                               if(sparse){
+                              if(sparse){
                                  fit_pars <- do.call(mcml_optim_sparse,list(self$covariance$get_D_data(),
                                                                             Q=R,
                                                                             Ap=Ap,
@@ -382,15 +362,11 @@ for more details")
                              if(verbose)cat("\n\nCalculating standard errors...")
                              
                              cov_nms <- as.character(unlist(rev(self$covariance$.__enclos_env__$private$flist)))
-                             cov_idx <- unique(self$covariance$.__enclos_env__$private$D_data$N_par)
+                             #cov_idx <- unique(self$covariance$.__enclos_env__$private$D_data$N_par)
+                             fnpar <- c(1,1,1,2,2,1,2,2,2,2,2,2,2,1)
                              cov_pars_freq <- rep(0,length(cov_nms))
                              for(b in 1:length(cov_nms)){
-                               if(b < length(cov_nms)){
-                                 cov_pars_freq[b] <- cov_idx[b+1,1] - cov_idx[b,1]
-                               } else {
-                                 cov_pars_freq[b] <- length(parInds$cov) - cov_idx[b,1]
-                               }
-                               
+                              cov_pars_freq[b] <- sum(fnpar[self$covariance$.__enclos_env__$private$D_data$func_def[b,1:self$covariance$.__enclos_env__$private$D_data$N_func[b]]])
                              }
                              cov_pars_names <- rep(cov_nms,cov_pars_freq)
                              permutation <- FALSE
@@ -399,31 +375,6 @@ for more details")
                                if(se.method=="lik"|se.method=="robust"){
                                  if(verbose&!robust)cat("using Hessian\n")
                                  if(verbose&robust)cat("using robust sandwich estimator\n")
-                                 # hess <- tryCatch(do.call(f_lik_hess,append(self$covariance$.__enclos_env__$private$D_data,
-                                 #                                            list(as.matrix(self$covariance$Z),
-                                 #                                                 as.matrix(self$mean_function$X),
-                                 #                                                 y,
-                                 #                                                 dsamps,
-                                 #                                                 theta[parInds$cov],
-                                 #                                                 family=self$mean_function$family[[1]],
-                                 #                                                 link=self$mean_function$family[[2]],
-                                 #                                                 start = theta[all_pars],
-                                 #                                                 lower = c(rep(-Inf,P),rep(1e-6,length(all_pars)-P)),
-                                 #                                                 upper = c(rep(Inf,P),upper),
-                                 #                                                 tol=fd_tol,importance = TRUE))),
-                                 #                  error=function(e)NULL)
-                                 
-                                 # hess <- tryCatch(do.call(mcml_hess,append(self$covariance$get_D_data(),
-                                 #                                           list(R,
-                                 #                                                as.matrix(self$covariance$Z),
-                                 #                                                as.matrix(self$mean_function$X),
-                                 #                                                y,
-                                 #                                                as.matrix(dsamps),
-                                 #                                                family=self$mean_function$family[[1]],
-                                 #                                                link=self$mean_function$family[[2]],
-                                 #                                                start = theta,
-                                 #                                                trace=trace))),
-                                 #                  error=function(e)NULL)
                                 hess <- do.call(mcml_hess,list(self$covariance$get_D_data(),
                                                                R,
                                                                as.matrix(self$covariance$Z),
@@ -521,11 +472,10 @@ for more details")
                                  SE <- c(SE,NA)
                                } else {
                                  #mf_pars <- theta[c(parInds$b)]
-                                 mf_pars_names <- colnames(self$mean_function$X,cov_pars_names)
+                                 mf_pars_names <- c(colnames(self$mean_function$X),cov_pars_names)
                                }
-                               
                                res <- data.frame(par = c(mf_pars_names,paste0("d",1:Q)),
-                                                 est = c(theta,rowMeans(dsamps)),
+                                                 est = c(theta[all_pars],rowMeans(dsamps)),
                                                  SE=c(SE,apply(dsamps,1,sd)))
                                
                                res$lower <- res$est - qnorm(1-0.05/2)*res$SE

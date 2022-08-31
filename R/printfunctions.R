@@ -31,11 +31,12 @@ print.mcml <- function(x, ...){
   semethod <- ifelse(x$permutation,"permutation test",
                      ifelse(x$robust,"robust",ifelse(x$hessian,"hessian","approx")))
   cat("P-value and confidence interval method: ",semethod,"\n\n")
-  pars <- x$coefficients[!grepl("d",x$coefficients$par),c('est','SE','lower','upper')]
+  dim1 <- dim(x$re.samps)[1]
+  pars <- x$coefficients[1:(length(x$coefficients$par)-dim1),c('est','SE','lower','upper')]
   z <- pars$est/pars$SE
   pars <- cbind(pars[,1:2],z=z,p=2*(1-stats::pnorm(abs(z))),pars[,3:4])
   colnames(pars) <- c("Estimate","Std. Err.","z value","p value","2.5% CI","97.5% CI")
-  rnames <- x$coefficients$par[!grepl("d",x$coefficients$par)]
+  rnames <- x$coefficients$par[1:(length(x$coefficients$par)-dim1)]
   if(any(duplicated(rnames))){
     did <- unique(rnames[duplicated(rnames)])
     for(i in unique(did)){
