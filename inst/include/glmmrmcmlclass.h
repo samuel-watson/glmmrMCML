@@ -123,50 +123,26 @@ public:
       logl(j) = D_->loglik(u_.col(j));
     }
     
-    return -1.0*(arma::mean(ll) + arma::mean(logl));
+    //return -1.0*(arma::mean(ll) + arma::mean(logl));
     
-//     arma::uword niter = u_.n_cols;
-//     arma::uword n = y_.n_elem;
-//     arma::uword P = X_.n_cols;
-//     arma::uword Q = cov_par_fix_.n_elem;
-//     double du;
-//     arma::vec numerD(niter,fill::zeros);
-//     arma::uword nrow = u_.n_cols;
-//     D_->update_parameters(par.subvec(P,P+Q-1));
-// //#pragma omp parallel for
-//     for(arma::uword j=0;j<nrow;j++){
-//       numerD(j) += D_->loglik(u_.col(j));
-//     }
-//     arma::vec xb(n);
-//     double var_par = family_=="gaussian"&& !fix_var_ ? par(P+Q) : fix_var_par_;
-//     Rcpp::Rcout << "\n FF 3" << var_par;
-//     xb = X_*par.subvec(0,P-1);
-//     arma::vec lfa(niter,fill::zeros);
-//     arma::mat zd = Z_ * u_;
-// //#pragma omp parallel for
-//     for(arma::uword j=0; j<niter ; j++){
-//       lfa(j) += log_likelihood(y_,xb + zd.col(j),var_par,family_,link_);
-//     }
-    
-//     if(importance_){
-//       // denominator density for importance sampling
-//       arma::vec denomD(niter,fill::zeros);
-//       D_->update_parameters(cov_par_fix_);
-// //#pragma omp parallel for
-//       for(arma::uword j=0;j<nrow;j++){
-//         denomD(j) += D_->loglik(u_.col(j));
-//       }
-//       du = 0;
-//       for(arma::uword j=0;j<niter;j++){
-//         du  += exp(lfa(j)+numerD(j))/exp(denomD(j));
-//       }
-//       
-//       du = -1 * log(du/niter);
-//     } else {
-//       du = -1* (mean(numerD) + mean(lfa));
-//     }
-//     Rcpp::Rcout << "\n FF Finish " << par.t() << " \ndu: " << du;
-//     return du;
+    if(importance_){
+      double du;
+      // denominator density for importance sampling
+      arma::vec denomD(niter,fill::zeros);
+      D_->update_parameters(cov_par_fix_);
+#pragma omp parallel for
+      for(arma::uword j=0;j<niter;j++){
+        denomD(j) += D_->loglik(u_.col(j));
+      }
+      du = 0;
+      for(arma::uword j=0;j<niter;j++){
+        du  += exp(ll(j)+logl(j))/exp(denomD(j));
+      }
+
+      return -1.0 * log(du/niter);
+    } else {
+      return -1.0*(arma::mean(ll) + arma::mean(logl));
+    }
   }
 };
 

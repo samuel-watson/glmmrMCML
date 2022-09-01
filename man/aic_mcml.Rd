@@ -2,27 +2,9 @@
 % Please edit documentation in R/RcppExports.R
 \name{aic_mcml}
 \alias{aic_mcml}
-\title{Calculates the Akaike Information Criterion for the GLMM}
+\title{Calculates the conditional Akaike Information Criterion for the GLMM}
 \usage{
-aic_mcml(
-  Z,
-  X,
-  y,
-  u,
-  family,
-  link,
-  B,
-  N_dim,
-  N_func,
-  func_def,
-  N_var_func,
-  col_id,
-  N_par,
-  sum_N_par,
-  cov_data,
-  beta_par,
-  cov_par
-)
+aic_mcml(Z, X, y, u, family, link, D_data, beta_par, cov_par)
 }
 \arguments{
 \item{Z}{Matrix Z of the GLMM}
@@ -37,36 +19,16 @@ aic_mcml(
 
 \item{link}{Character specifying the link function}
 
-\item{B}{Integer specifying the number of blocks in the matrix}
+\item{D_data}{Named list specifying the covariance matrix D. Usually the return from the member function `get_D_data()` of the 
+covariance class}
 
-\item{N_dim}{Vector of integers, which each value specifying the dimension of each block}
+\item{beta_par}{Vector specifying the values of the mean function parameters to estimate the AIC at}
 
-\item{N_func}{Vector of integers specifying the number of functions in the covariance function 
-for each block.}
-
-\item{func_def}{Matrix of integers where each column specifies the function definition for each function in each block.}
-
-\item{N_var_func}{Matrix of integers of same size as `func_def` with each column specying the number 
-of variables in the argument to each function in each block}
-
-\item{col_id}{3D array (cube) of integers of dimension length(func_def) x max(N_var_func) x B 
-where each slice the respective column indexes of `cov_data` for each function in the block}
-
-\item{N_par}{Matrix of integers of same size as `func_def` with each column specifying the number
-of parameters in the function in each block}
-
-\item{sum_N_par}{Total number of parameters}
-
-\item{cov_data}{3D array (cube) holding the data for the covariance matrix where each of the B slices
-is the data required for each block}
-
-\item{beta_par}{Vector specifying the values of the mean function parameters}
-
-\item{cov_par}{Vector specifying the values of the covariance parameters}
+\item{cov_par}{Vector specifying the values of the covariance function parameters to estimate the AIC at}
 }
 \value{
-A matrix of the Hessian for each parameter
+Estimated conditional AIC
 }
 \description{
-Calculates the Akaike Information Criterion for the GLMM
+Calculates the conditional Akaike Information Criterion for the GLMM
 }

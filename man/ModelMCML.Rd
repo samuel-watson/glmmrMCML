@@ -51,34 +51,19 @@ parameter estimates.
 The accuracy of the algorithm depends on the user specified tolerance. For higher levels of
 tolerance, larger numbers of MCMC samples are likely need to sufficiently reduce Monte Carlo error.
 
-The function also offers different methods of obtaining standard errors. First, one can generate
-estimates from the estimated Hessian matrix (\code{se.method = 'lik'}). Second, there are robust standard
-errors using a sandwich estimator based on White (1982) (\code{se.method = 'robust'}).
-Third, there are use approximate generalised least squares estimates based on the maximum likelihood
-estimates of the covariance
-parameters (\code{se.method = 'approx'}), or use a permutation test approach (\code{se.method = 'perm'}).
-Note that the permutation test can be accessed separately with the function \code{permutation_test()}.
+The function also offers different methods of obtaining standard errors. One can generate
+estimates from the estimated Hessian matrix (\code{se.method = 'lik'}).
+Or use approximate generalised least squares estimates based on the maximum likelihood
+estimates of the covariance parameters (\code{se.method = 'approx'}).
 
 There are several options that can be specified to the function using the \code{options} argument.
 The options should be provided as a list, e.g. \code{options = list(method="mcnr")}. The possible options are:
 \itemize{
-\item \code{b_se_only} TRUE (calculate standard errors of the mean function parameters only) or FALSE (calculate
-all standard errors), default it FALSE.
-\item \code{use_cmdstanr} TRUE (uses \code{cmdstanr} for the MCMC sampling, requires cmdstanr), or FALSE (uses \code{rstan}). Default is FALSE.
-\item \code{skip_cov_optim} TRUE (skips the covariance parameter estimation step, and uses the values covariance$parameters), or
-FALSE (run the whole algorithm)], default is FALSE
-\item \code{sim_lik_step} TRUE (conduct a simulated likelihood step at the end of the algorithm), or FALSE (does
-not do this step), defaults to FALSE.
 \item \code{no_warnings} TRUE (do not report any warnings) or FALSE (report warnings), default to FALSE
-\item \code{perm_type} Either \code{cov} (use weighted test statistic in permutation test) or \code{unw} (use unweighted
-test statistic), defaults to \code{cov}. See \code{permutation_test()}.
-\item \code{perm_iter} Number of iterations for the permutation test, default is 100.
-\item \code{perm_parallel} TRUE (run permuation test in parallel) or FALSE (runs on a single thread), default to TRUE
 \item \code{warmup_iter} Number of warmup iterations on each iteration for the MCMC sampler, default is 500
-\item \code{perm_ci_steps} Number of steps for the confidence interval search procedure if using the permutation
-test, default is 1000. See \code{permutation_test()}.
 \item \code{fd_tol} The tolerance of the first difference method to estimate the Hessian and Gradient, default
 is 1e-4.
+\item \code{trace} Level of detail to report in output: 0 = no detail (default), 1 & 2 = detailed return from BOBYQA
 }
 }
 \examples{
@@ -91,7 +76,7 @@ is 1e-4.
 df <- nelder(~(cl(10)*t(5)) > ind(10))
 df$int <- 0
 df[df$cl > 5, 'int'] <- 1
-des <- Design$new(
+des <- ModelMCML$new(
   covariance = list(
     data = df,
     formula = ~ (1|gr(cl)*ar1(t)),
@@ -103,29 +88,15 @@ des <- Design$new(
     family = binomial())
 )
 ysim <- des$sim_data()
-# fits the models using MCEM but does not estimate standard errors
-fit1 <- des$MCML(y = ysim,
-  se.method = "none")
-#fits the models using MCNR but does not estimate standard errors
+# fits the models using MCEM with 250 samples
+fit1 <- des$MCML(y = ysim, m=250)
+#fits the models using MCNR and report detailed output
 fit2 <- des$MCML(y = ysim,
-  se.method = "none",
-  method="mcnr")
-#fits the models and uses permutation tests for parameter of interest
-fit3 <- des$MCML(y = ysim,
-  se.method = "perm",
-  permutation.par = 6,
-  options = list(
-    perm_type="unw",
-    perm_iter=1000,
-    perm_parallel=FALSE,
-    perm_ci_steps=1000
-  ))
+  method="mcnr",
+  options = list(trace = 2))
  #adds a simulated likelihood step after the MCEM algorithm
-fit4 <- des$MCML(y = des$sim_data(),
-  se.method = "none",
-  options = list(
-    sim_lik_step=TRUE
-  ))  
+fit4 <- des$MCML(y = ysim,
+  sim.lik.step = TRUE)  
 }
 }
 \references{
@@ -142,29 +113,29 @@ Watson confidence interval
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-ModelMCML-MCML}{\code{ModelMCML$MCML()}}
-\item \href{#method-ModelMCML-clone}{\code{ModelMCML$clone()}}
+\item \href{#method-MCML}{\code{ModelMCML$MCML()}}
+\item \href{#method-clone}{\code{ModelMCML$clone()}}
 }
 }
-\if{html}{\out{
-<details><summary>Inherited methods</summary>
-<ul>
-<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="check"><a href='../../glmmrBase/html/Model.html#method-Model-check'><code>glmmrBase::Model$check()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="fitted"><a href='../../glmmrBase/html/Model.html#method-Model-fitted'><code>glmmrBase::Model$fitted()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="information_matrix"><a href='../../glmmrBase/html/Model.html#method-Model-information_matrix'><code>glmmrBase::Model$information_matrix()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="initialize"><a href='../../glmmrBase/html/Model.html#method-Model-initialize'><code>glmmrBase::Model$initialize()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n"><a href='../../glmmrBase/html/Model.html#method-Model-n'><code>glmmrBase::Model$n()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n_cluster"><a href='../../glmmrBase/html/Model.html#method-Model-n_cluster'><code>glmmrBase::Model$n_cluster()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="print"><a href='../../glmmrBase/html/Model.html#method-Model-print'><code>glmmrBase::Model$print()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="sim_data"><a href='../../glmmrBase/html/Model.html#method-Model-sim_data'><code>glmmrBase::Model$sim_data()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_cols"><a href='../../glmmrBase/html/Model.html#method-Model-subset_cols'><code>glmmrBase::Model$subset_cols()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_rows"><a href='../../glmmrBase/html/Model.html#method-Model-subset_rows'><code>glmmrBase::Model$subset_rows()</code></a></span></li>
-</ul>
-</details>
-}}
+\if{html}{
+\out{<details ><summary>Inherited methods</summary>}
+\itemize{
+\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="check">}\href{../../glmmrBase/html/Model.html#method-check}{\code{glmmrBase::Model$check()}}\out{</span>}
+\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="fitted">}\href{../../glmmrBase/html/Model.html#method-fitted}{\code{glmmrBase::Model$fitted()}}\out{</span>}
+\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="information_matrix">}\href{../../glmmrBase/html/Model.html#method-information_matrix}{\code{glmmrBase::Model$information_matrix()}}\out{</span>}
+\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="initialize">}\href{../../glmmrBase/html/Model.html#method-initialize}{\code{glmmrBase::Model$initialize()}}\out{</span>}
+\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n">}\href{../../glmmrBase/html/Model.html#method-n}{\code{glmmrBase::Model$n()}}\out{</span>}
+\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n_cluster">}\href{../../glmmrBase/html/Model.html#method-n_cluster}{\code{glmmrBase::Model$n_cluster()}}\out{</span>}
+\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="print">}\href{../../glmmrBase/html/Model.html#method-print}{\code{glmmrBase::Model$print()}}\out{</span>}
+\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="sim_data">}\href{../../glmmrBase/html/Model.html#method-sim_data}{\code{glmmrBase::Model$sim_data()}}\out{</span>}
+\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_cols">}\href{../../glmmrBase/html/Model.html#method-subset_cols}{\code{glmmrBase::Model$subset_cols()}}\out{</span>}
+\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_rows">}\href{../../glmmrBase/html/Model.html#method-subset_rows}{\code{glmmrBase::Model$subset_rows()}}\out{</span>}
+}
+\out{</details>}
+}
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ModelMCML-MCML"></a>}}
-\if{latex}{\out{\hypertarget{method-ModelMCML-MCML}{}}}
+\if{html}{\out{<a id="method-MCML"></a>}}
+\if{latex}{\out{\hypertarget{method-MCML}{}}}
 \subsection{Method \code{MCML()}}{
 Markov Chain Monte Carlo Maximum Likelihood  model fitting
 \subsection{Usage}{
@@ -172,13 +143,13 @@ Markov Chain Monte Carlo Maximum Likelihood  model fitting
   y,
   start,
   se.method = "lik",
-  method = "mcnr",
-  permutation.par,
+  method = "mcem",
+  sim.lik.step = FALSE,
   verbose = TRUE,
   tol = 0.01,
   m = 100,
   max.iter = 30,
-  mcmc = TRUE,
+  sparse = FALSE,
   options = list()
 )}\if{html}{\out{</div>}}
 }
@@ -195,7 +166,8 @@ If this is not specified then the parameter values stored in the linked mean fun
 
 \item{\code{method}}{The MCML algorithm to use, either \code{mcem} or \code{mcnr}, see Details. Default is \code{mcem}.}
 
-\item{\code{permutation.par}}{Optional. Integer specifing the index of the parameter if permutation tests are being used.}
+\item{\code{sim.lik.step}}{Logical. Either TRUE (conduct a simulated likelihood step at the end of the algorithm), or FALSE (does
+not do this step), defaults to FALSE.}
 
 \item{\code{verbose}}{Logical indicating whether to provide detailed output, defaults to TRUE.}
 
@@ -219,7 +191,7 @@ A \code{mcml} object
 df <- nelder(~(cl(10)*t(5)) > ind(10))
 df$int <- 0
 df[df$cl > 5, 'int'] <- 1
-des <- Design$new(
+des <- ModelMCML$new(
   covariance = list(
     data = df,
     formula = ~ (1|gr(cl)*ar1(t)),
@@ -231,29 +203,15 @@ des <- Design$new(
     family = binomial())
 )
 ysim <- des$sim_data()
-# fits the models using MCEM but does not estimate standard errors
-fit1 <- des$MCML(y = ysim,
-  se.method = "none")
-#fits the models using MCNR but does not estimate standard errors
+# fits the models using MCEM with 250 samples
+fit1 <- des$MCML(y = ysim, m=250)
+#fits the models using MCNR and report detailed output
 fit2 <- des$MCML(y = ysim,
-  se.method = "none",
-  method="mcnr")
-#fits the models and uses permutation tests for parameter of interest
-fit3 <- des$MCML(y = ysim,
-  se.method = "perm",
-  permutation.par = 6,
-  options = list(
-    perm_type="unw",
-    perm_iter=1000,
-    perm_parallel=FALSE,
-    perm_ci_steps=1000
-  ))
+  method="mcnr",
+  options = list(trace = 2))
  #adds a simulated likelihood step after the MCEM algorithm
-fit4 <- des$MCML(y = des$sim_data(),
-  se.method = "none",
-  options = list(
-    sim_lik_step=TRUE
-  ))  
+fit4 <- des$MCML(y = ysim,
+  sim.lik.step = TRUE)  
 }
 }
 \if{html}{\out{</div>}}
@@ -262,8 +220,8 @@ fit4 <- des$MCML(y = des$sim_data(),
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ModelMCML-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-ModelMCML-clone}{}}}
+\if{html}{\out{<a id="method-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{

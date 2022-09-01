@@ -57,28 +57,26 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            #'The accuracy of the algorithm depends on the user specified tolerance. For higher levels of
                            #'tolerance, larger numbers of MCMC samples are likely need to sufficiently reduce Monte Carlo error.
                            #'
-                           #'The function also offers different methods of obtaining standard errors. First, one can generate
-                           #'estimates from the estimated Hessian matrix (`se.method = 'lik'`). Second, there are robust standard 
-                           #'errors using a sandwich estimator based on White (1982) (`se.method = 'robust'`). 
-                           #'Third, there are use approximate generalised least squares estimates based on the maximum likelihood 
-                           #'estimates of the covariance
-                           #'parameters (`se.method = 'approx'`), or use a permutation test approach (`se.method = 'perm'`).
-                           #'Note that the permutation test can be accessed separately with the function `permutation_test()`.
+                           #'The function also offers different methods of obtaining standard errors. One can generate
+                           #'estimates from the estimated Hessian matrix (`se.method = 'lik'`). 
+                           #'Or use approximate generalised least squares estimates based on the maximum likelihood 
+                           #'estimates of the covariance parameters (`se.method = 'approx'`).
                            #'
                            #'There are several options that can be specified to the function using the `options` argument. 
                            #'The options should be provided as a list, e.g. `options = list(method="mcnr")`. The possible options are:
-                           #'* `sim_lik_step` TRUE (conduct a simulated likelihood step at the end of the algorithm), or FALSE (does
-                           #'not do this step), defaults to FALSE.
                            #'* `no_warnings` TRUE (do not report any warnings) or FALSE (report warnings), default to FALSE
                            #' * `warmup_iter` Number of warmup iterations on each iteration for the MCMC sampler, default is 500
                            #' * `fd_tol` The tolerance of the first difference method to estimate the Hessian and Gradient, default 
                            #' is 1e-4.
+                           #' * `trace` Level of detail to report in output: 0 = no detail (default), 1 & 2 = detailed return from BOBYQA
                            #'
                            #'@param y A numeric vector of outcome data
                            #'@param start Optional. A numeric vector indicating starting values for the MCML algorithm iterations. 
                            #'If this is not specified then the parameter values stored in the linked mean function object will be used.
                            #'@param se.method One of either `'lik'`, `'approx'`, `'perm'`, or `'none'`, see Details.
                            #'@param method The MCML algorithm to use, either `mcem` or `mcnr`, see Details. Default is `mcem`.
+                           #'@param sim.lik.step Logical. Either TRUE (conduct a simulated likelihood step at the end of the algorithm), or FALSE (does
+                           #'not do this step), defaults to FALSE.
                            #'@param verbose Logical indicating whether to provide detailed output, defaults to TRUE.
                            #'@param tol Numeric value, tolerance of the MCML algorithm, the maximum difference in parameter estimates 
                            #'between iterations at which to stop the algorithm.
@@ -91,7 +89,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            #'df <- nelder(~(cl(10)*t(5)) > ind(10))
                            #' df$int <- 0
                            #' df[df$cl > 5, 'int'] <- 1
-                           #' des <- Design$new(
+                           #' des <- ModelMCML$new(
                            #'   covariance = list(
                            #'     data = df,
                            #'     formula = ~ (1|gr(cl)*ar1(t)),
@@ -103,36 +101,22 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            #'     family = binomial())
                            #' )
                            #' ysim <- des$sim_data()
-                           #' # fits the models using MCEM but does not estimate standard errors
-                           #' fit1 <- des$MCML(y = ysim,
-                           #'   se.method = "none")
-                           #' #fits the models using MCNR but does not estimate standard errors
+                           #' # fits the models using MCEM with 250 samples
+                           #' fit1 <- des$MCML(y = ysim, m=250)
+                           #' #fits the models using MCNR and report detailed output
                            #' fit2 <- des$MCML(y = ysim,
-                           #'   se.method = "none",
-                           #'   method="mcnr")
-                           #' #fits the models and uses permutation tests for parameter of interest
-                           #' fit3 <- des$MCML(y = ysim,
-                           #'   se.method = "perm",
-                           #'   permutation.par = 6,
-                           #'   options = list(
-                           #'     perm_type="unw",
-                           #'     perm_iter=1000,
-                           #'     perm_parallel=FALSE,
-                           #'     perm_ci_steps=1000
-                           #'   ))
+                           #'   method="mcnr",
+                           #'   options = list(trace = 2))
                            #'  #adds a simulated likelihood step after the MCEM algorithm
-                           #' fit4 <- des$MCML(y = des$sim_data(),
-                           #'   se.method = "none",
-                           #'   options = list(
-                           #'     sim_lik_step=TRUE
-                           #'   ))  
+                           #' fit4 <- des$MCML(y = ysim,
+                           #'   sim.lik.step = TRUE)  
                            #'}
                            #'@md
                            MCML = function(y,
                                            start,
                                            se.method = "lik",
                                            method = "mcem",
-                                           permutation.par,
+                                           sim.lik.step = FALSE,
                                            verbose=TRUE,
                                            tol = 1e-2,
                                            m=100,
@@ -141,25 +125,12 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                            options = list()){
                              
                              # checks
-                             if(!se.method%in%c("perm","lik","none","robust","approx"))stop("se.method should be 'perm', 'lik', 'robust', 'approx', or 'none'")
-                             if(se.method=="perm" & missing(permutation.par))stop("if using permutational based
-inference, set permuation.par")
-                             if(se.method=="perm" & is.null(self$mean_function$randomise))stop("random allocations
-are created using the function in self$mean_function$randomise, but this has not been set. Please see help(MeanFunction)
-for more details")
+                             if(!se.method%in%c("lik","robust","approx"))stop("se.method should be 'perm', 'lik', 'robust', 'approx', or 'none'")
+                             
                              #set options
                              if(!is(options,"list"))stop("options should be a list")
-                             b_se_only <- ifelse("b_se_only"%in%names(options),options$b_se_only,FALSE)
-                             use_cmdstanr <- ifelse("use_cmdstanr"%in%names(options),options$use_cmdstanr,FALSE)
-                             skip_cov_optim <- ifelse("skip_cov_optim"%in%names(options),options$skip_cov_optim,FALSE)
-                             #method <- ifelse("method"%in%names(options),options$method,"mcnr")
-                             sim_lik_step <- ifelse("sim_lik_step"%in%names(options),options$sim_lik_step,FALSE)
                              no_warnings <- ifelse("no_warnings"%in%names(options),options$no_warnings,FALSE)
-                             perm_type <- ifelse("perm_type"%in%names(options),options$perm_type,"cov")
-                             perm_iter <- ifelse("perm_iter"%in%names(options),options$perm_iter,100)
-                             perm_parallel <- ifelse("perm_parallel"%in%names(options),options$perm_iter,TRUE)
                              warmup_iter <- ifelse("warmup_iter"%in%names(options),options$warmup_iter,500)
-                             perm_ci_steps <- ifelse("perm_ci_steps"%in%names(options),options$perm_ci_steps,1000)
                              fd_tol <- ifelse("fd_tol"%in%names(options),options$fd_tol,1e-4)
                              trace <- ifelse("trace"%in%names(options),options$trace,0)
                              
@@ -275,6 +246,8 @@ for more details")
                                dsamps <- fit$draws("gamma",format = "matrix")
                                class(dsamps) <- "matrix"
                                dsamps <- Matrix::t(dsamps %*% L)
+                               
+                               ## ADD IN RSTAN FUNCTIONALITY ONCE PARALLEL METHODS AVAILABLE IN RSTAN
                                #dsamps <- matrix(dsamps[,1,],ncol=Q)%*%L
                               # if(mcmc){
                               #   capture.output(suppressWarnings(fit <- rstan::sampling(stanmodels[[gsub(".stan","",file_type$file)]],
@@ -306,8 +279,7 @@ for more details")
                                                                             link=self$mean_function$family[[2]],
                                                                             start = theta,
                                                                             trace=trace,
-                                                                            mcnr = method=="mcnr",
-                                                                            importance = sim_lik_step))
+                                                                            mcnr = method=="mcnr"))
                                } else {
                                  fit_pars <- do.call(mcml_optim,list(self$covariance$get_D_data(),
                                                                             R,
@@ -319,8 +291,7 @@ for more details")
                                                                             link=self$mean_function$family[[2]],
                                                                             start = theta,
                                                                             trace=trace,
-                                                                            mcnr = method=="mcnr",
-                                                                            importance = sim_lik_step))
+                                                                            mcnr = method=="mcnr"))
                                }
 
                                theta[parInds$b] <-  drop(fit_pars$beta)
@@ -341,23 +312,37 @@ for more details")
                              if(not_conv&!no_warnings)warning(paste0("algorithm not converged. Max. difference between iterations :",max(abs(theta-thetanew)),". Suggest 
                                                  increasing m, or trying a different algorithm."))
                              
-                             # if(sim_lik_step){
-                             #   if(verbose)cat("\n\n")
-                             #   if(verbose)message("Optimising simulated likelihood")
-                             #   newtheta <- do.call(f_lik_optim,append(self$covariance$.__enclos_env__$private$D_data,
-                             #                                          list(as.matrix(self$covariance$Z),
-                             #                                               as.matrix(self$mean_function$X),
-                             #                                               y,
-                             #                                               dsamps,
-                             #                                               theta[parInds$cov],
-                             #                                               family=self$mean_function$family[[1]],
-                             #                                               link=self$mean_function$family[[2]],
-                             #                                               start = theta[all_pars],
-                             #                                               lower = c(rep(-Inf,P),rep(1e-6,length(all_pars)-P)),
-                             #                                               upper = c(rep(Inf,P),upper),
-                             #                                               trace=trace)))
-                             #   theta[all_pars] <- newtheta
-                             # }
+                             if(sim.lik.step){
+                               if(verbose)cat("\n\n")
+                               if(verbose)message("Optimising simulated likelihood")
+                               if(sparse){
+                                 newtheta <- do.call(mcml_simlik_sparse,list(self$covariance$get_D_data(),
+                                                                      R,
+                                                                      Ap=Ap,
+                                                                      Ai=Ai,
+                                                                      as.matrix(self$covariance$Z),
+                                                                      as.matrix(self$mean_function$X),
+                                                                      y,
+                                                                      as.matrix(dsamps),
+                                                                      family=self$mean_function$family[[1]],
+                                                                      link=self$mean_function$family[[2]],
+                                                                      start = theta,
+                                                                      trace=trace))
+                               } else {
+                                 newtheta <- do.call(mcml_simlik,list(self$covariance$get_D_data(),
+                                                                      R,
+                                                                      as.matrix(self$covariance$Z),
+                                                                      as.matrix(self$mean_function$X),
+                                                                      y,
+                                                                      as.matrix(dsamps),
+                                                                      family=self$mean_function$family[[1]],
+                                                                      link=self$mean_function$family[[2]],
+                                                                      start = theta,
+                                                                      trace=trace))
+                               }
+                               
+                               theta[all_pars] <- newtheta
+                             }
                              
                              if(verbose)cat("\n\nCalculating standard errors...")
                              
@@ -388,6 +373,8 @@ for more details")
                                                                trace=trace))
                                  hessused <- TRUE
                                  semat <- tryCatch(Matrix::solve(hess),error=function(e)NULL)
+                                 
+                                 ## OPTION TO ADD IN ROBUST STANDARD ERROR ESTIMATION IN LATER VERSIONS
                                  # if(se.method == "robust"&!is.null(semat)){
                                  #   hlist <- list()
                                  #   #identify the clustering and sum over independent clusters
@@ -557,11 +544,9 @@ for more details")
                                          converged = !not_conv,
                                          method = method,
                                          hessian = hessused,
-                                         robust = robust,
-                                         permutation = permutation,
                                          m = m,
                                          tol = tol,
-                                         sim_lik = sim_lik_step,
+                                         sim_lik = sim.lik.step,
                                          aic = aic,
                                          Rsq = c(cond = condR2,marg=margR2),
                                          mean_form = as.character(self$mean_function$formula),

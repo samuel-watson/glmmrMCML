@@ -2,52 +2,15 @@
 % Please edit documentation in R/RcppExports.R
 \name{mcml_hess}
 \alias{mcml_hess}
-\title{Likelihood maximisation for the GLMM s}
+\title{Generate Hessian matrix of GLMM}
 \usage{
-mcml_hess(
-  B,
-  N_dim,
-  N_func,
-  func_def,
-  N_var_func,
-  col_id,
-  N_par,
-  sum_N_par,
-  cov_data,
-  Z,
-  X,
-  y,
-  u,
-  cov_par_fix,
-  family,
-  link,
-  start,
-  trace
-)
+mcml_hess(D_data, Q, Z, X, y, u, family, link, start, tol = 1e-05, trace = 0L)
 }
 \arguments{
-\item{B}{Integer specifying the number of blocks in the matrix}
+\item{D_data}{Named list specifying the covariance matrix D. Usually the return from the member function `get_D_data()` of the 
+covariance class}
 
-\item{N_dim}{Vector of integers, which each value specifying the dimension of each block}
-
-\item{N_func}{Vector of integers specifying the number of functions in the covariance function 
-for each block.}
-
-\item{func_def}{Matrix of integers where each column specifies the function definition for each function in each block.}
-
-\item{N_var_func}{Matrix of integers of same size as `func_def` with each column specying the number 
-of variables in the argument to each function in each block}
-
-\item{col_id}{3D array (cube) of integers of dimension length(func_def) x max(N_var_func) x B 
-where each slice the respective column indexes of `cov_data` for each function in the block}
-
-\item{N_par}{Matrix of integers of same size as `func_def` with each column specifying the number
-of parameters in the function in each block}
-
-\item{sum_N_par}{Total number of parameters}
-
-\item{cov_data}{3D array (cube) holding the data for the covariance matrix where each of the B slices
-is the data required for each block}
+\item{Q}{Integer specifying the number of covariance parameters}
 
 \item{Z}{Matrix Z of the GLMM}
 
@@ -57,21 +20,23 @@ is the data required for each block}
 
 \item{u}{Matrix of samples of the random effects. Each column is a sample.}
 
-\item{cov_par_fix}{A vector of covariance parameters for importance sampling}
-
 \item{family}{Character specifying the family}
 
 \item{link}{Character specifying the link function}
 
 \item{start}{Vector of starting values for the optimisation}
 
+\item{tol}{The tolerance of the numerical differentiation routine}
+
 \item{trace}{Integer indicating what to report to the console, 0= nothing, 1-3=detailed output}
+
+\item{cov_par_fix}{A vector of covariance parameters for importance sampling}
 }
 \value{
-A vector of the parameters that maximise the simulated likelihood
+The estimated Hessian matrix
 }
 \description{
-Likelihood maximisation for the GLMM
+Generate Hessian matrix of GLMM using numerical differentiation
 }
 \details{
 Member function `$get_D_data()` of the covariance class will provide the necessary objects to specify the covariance matrix
