@@ -178,6 +178,8 @@ between iterations at which to stop the algorithm.}
 
 \item{\code{max.iter}}{Integer. The maximum number of iterations of the MCML algorithm.}
 
+\item{\code{sparse}}{Logical indicating whether to use sparse matrix methods}
+
 \item{\code{options}}{An optional list providing options to the algorithm, see Details.}
 }
 \if{html}{\out{</div>}}

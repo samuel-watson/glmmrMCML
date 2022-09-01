@@ -82,6 +82,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            #'between iterations at which to stop the algorithm.
                            #'@param m Integer. The number of MCMC draws of the random effects on each iteration.
                            #'@param max.iter Integer. The maximum number of iterations of the MCML algorithm.
+                           #'@param sparse Logical indicating whether to use sparse matrix methods
                            #'@param options An optional list providing options to the algorithm, see Details.
                            #'@return A `mcml` object
                            #'@examples

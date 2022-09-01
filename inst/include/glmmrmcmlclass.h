@@ -2,7 +2,7 @@
 #define GLMMRMCMLCLASS_H
 
 #include <rbobyqa.h>
-#include <sparsechol.h>
+#include <SparseChol.h>
 #include "glmmrmcml.h"
 
 using namespace Rcpp;
