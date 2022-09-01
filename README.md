@@ -1,8 +1,8 @@
 # glmmrMCML
-R package for Markov Chain Monte Carlo Maximum Likelihood (MCML) estimation of generalised linear mixed models (GLMM), built on the [glmmrBase]{https://github.com/samuel-watson/glmmrBase} package.
+R package for Markov Chain Monte Carlo Maximum Likelihood (MCML) estimation of generalised linear mixed models (GLMM), built on the [glmmrBase](https://github.com/samuel-watson/glmmrBase) package.
 
 ## Model specification
-For model specification see readme of [glmmrBase]{https://github.com/samuel-watson/glmmrBase}. The `glmmrMCML` package creates the `ModelMCML` class that inherits from the `Model` class and adds the member function `MCML`
+For model specification see readme of [glmmrBase](https://github.com/samuel-watson/glmmrBase). The `glmmrMCML` package creates the `ModelMCML` class that inherits from the `Model` class and adds the member function `MCML`
 
 ## Model estimation
 The member function `MCML()` fits the model. There are multiple options to control the algorithm and set its parameters, which are detailed in the function manual. The main options for the user to choose are the algorithm (Monte Carlo Expectation Maximisation (MCEM) or Monte Carlo Newton Raphson (MCNR); default is MCEM), the standard error method (Hessian or approximate; default is Hessian), the number of MCMC samples $m$ (default is $m=100$), whether to use sparse matrix methods (default is false), and the tolerance of the algorithm $\tau$ to determine termination (default is $\tau = 0.01$). We provide several examples below.
