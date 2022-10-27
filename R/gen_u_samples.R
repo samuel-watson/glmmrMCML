@@ -36,30 +36,34 @@ mcnr_family <- function(family){
 #' @return A matrix in which each column is a sample of the random effects
 #' @export
 gen_u_samples <- function(y,X,Z,L,beta,family,sigma=1,warmup_iter=100,m=100){
-  if(!requireNamespace("cmdstanr"))stop("cmdstanr not available")
-  file_type <- mcnr_family(family)
-  model_file <- system.file("stan",
-                            file_type$file,
-                            package = "glmmrMCML",
-                            mustWork = TRUE)
-  mod <- suppressMessages(cmdstanr::cmdstan_model(model_file))
-  data <- list(
-    N = nrow(X),
-    Q = ncol(Z),
-    Xb = drop(as.matrix(X)%*%beta),
-    Z = as.matrix(Z)%*%L,
-    y = y,
-    sigma = sigma,
-    type=as.numeric(file_type$type)
-  )
-  
-  capture.output(fit <- mod$sample(data = data,
-                                   chains = 1,
-                                   iter_warmup = warmup_iter,
-                                   iter_sampling = m,
-                                   refresh = 0),
-                 file=tempfile())
-  dsamps <- fit$draws("gamma",format = "matrix")
-  dsamps <- t(dsamps %*% L)
-  return(dsamps)
+  if(!requireNamespace("cmdstanr")){
+    stop("cmdstanr not available")
+  } else {
+    file_type <- mcnr_family(family)
+    model_file <- system.file("stan",
+                              file_type$file,
+                              package = "glmmrMCML",
+                              mustWork = TRUE)
+    mod <- suppressMessages(cmdstanr::cmdstan_model(model_file))
+    data <- list(
+      N = nrow(X),
+      Q = ncol(Z),
+      Xb = drop(as.matrix(X)%*%beta),
+      Z = as.matrix(Z)%*%L,
+      y = y,
+      sigma = sigma,
+      type=as.numeric(file_type$type)
+    )
+    
+    capture.output(fit <- mod$sample(data = data,
+                                     chains = 1,
+                                     iter_warmup = warmup_iter,
+                                     iter_sampling = m,
+                                     refresh = 0),
+                   file=tempfile())
+    dsamps <- fit$draws("gamma",format = "matrix")
+    dsamps <- t(dsamps %*% L)
+    return(dsamps)
+    }
+ 
 }

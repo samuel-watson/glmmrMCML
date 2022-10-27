@@ -27,8 +27,6 @@ covariance class}
 \item{start}{Vector of starting values for the optimisation}
 
 \item{trace}{Integer indicating what to report to the console, 0= nothing, 1-3=detailed output}
-
-\item{cov_par_fix}{A vector of covariance parameters for importance sampling}
 }
 \value{
 A vector of the parameters that maximise the simulated likelihood

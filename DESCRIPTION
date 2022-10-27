@@ -1,6 +1,6 @@
 Package: glmmrMCML
 Type: Package
-Title: MCMC Maximum Likelihood for generalised linear mixed models in R
+Title: MCMC Maximum Likelihood for generalised linear mixed models
 Version: 0.1.2
 Date: 2022-08-16
 Author@R: c(person("Sam", "Watson", email = "S.I.Watson@bham.ac.uk",
@@ -8,8 +8,9 @@ Author@R: c(person("Sam", "Watson", email = "S.I.Watson@bham.ac.uk",
              person("Yi", "Pan", email = "ypan1988@gmail.com",
                   role = c("aut")))
 Maintainer: Sam Watson <S.I.Watson@bham.ac.uk>
-Description: Design analysis tools for any study design that can be represented or modelled as a generalised linear mixed model including cluster randomised trials, cohort studies, spatial and spatio-temporal epidemiological models, and split-plot designs. 
-License: GPL (>= 2)
+Description: Markov Chain Monte Carlo Maximum Likelihood (MCMCML) model fitting for generalised linear mixed models (GLMM). Uses 
+  the package 'glmmrBase' for specification of GLMMs.
+License: GPL (>= 3)
 Imports: 
     methods,
     Rcpp (>= 1.0.7)
@@ -27,7 +28,8 @@ Author: Sam Watson [aut, cre],
 URL: https://github.com/samuel-watson/glmmrMCML
 BugReports: https://github.com/samuel-watson/glmmrMCML/issues
 Suggests: 
-    testthat
+    testthat,
+    cmdstanr (>= 0.4.0)
 Biarch: true
 Depends: 
     R (>= 3.4.0),

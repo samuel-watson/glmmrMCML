@@ -29,8 +29,6 @@ covariance class}
 \item{tol}{The tolerance of the numerical differentiation routine}
 
 \item{trace}{Integer indicating what to report to the console, 0= nothing, 1-3=detailed output}
-
-\item{cov_par_fix}{A vector of covariance parameters for importance sampling}
 }
 \value{
 The estimated Hessian matrix

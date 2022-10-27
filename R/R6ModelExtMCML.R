@@ -215,12 +215,16 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              }
                              
                              ## set up sampler
-                             if(!requireNamespace("cmdstanr"))stop("cmdstanr not available")
-                             model_file <- system.file("stan",
-                                                       file_type$file,
-                                                       package = "glmmrMCML",
-                                                       mustWork = TRUE)
-                             mod <- suppressMessages(cmdstanr::cmdstan_model(model_file))
+                             if(!requireNamespace("cmdstanr")){
+                               stop("cmdstanr not available")
+                             } else {
+                               model_file <- system.file("stan",
+                                                         file_type$file,
+                                                         package = "glmmrMCML",
+                                                         mustWork = TRUE)
+                               mod <- suppressMessages(cmdstanr::cmdstan_model(model_file))
+                             }
+                             
                              
                              ## ALGORITHMS
                              while(any(abs(theta-thetanew)>tol)&iter <= max.iter){

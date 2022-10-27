@@ -49,10 +49,6 @@ of a matrix of a class defined in \link[Matrix]{sparseMatrix}}
 \item{trace}{Integer indicating what to report to the console, 0= nothing, 1-3=detailed output}
 
 \item{mcnr}{Logical indicating whether to use Newton-Raphson (TRUE) or Expectation Maximisation (FALSE)}
-
-\item{cov_par_fix}{A vector of covariance parameters for importance sampling}
-
-\item{importance}{Logical indicating whether to use importance sampling step}
 }
 \value{
 A vector of the parameters that maximise the simulated likelihood

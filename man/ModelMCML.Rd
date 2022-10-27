@@ -113,29 +113,29 @@ Watson confidence interval
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-MCML}{\code{ModelMCML$MCML()}}
-\item \href{#method-clone}{\code{ModelMCML$clone()}}
+\item \href{#method-ModelMCML-MCML}{\code{ModelMCML$MCML()}}
+\item \href{#method-ModelMCML-clone}{\code{ModelMCML$clone()}}
 }
 }
-\if{html}{
-\out{<details ><summary>Inherited methods</summary>}
-\itemize{
-\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="check">}\href{../../glmmrBase/html/Model.html#method-check}{\code{glmmrBase::Model$check()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="fitted">}\href{../../glmmrBase/html/Model.html#method-fitted}{\code{glmmrBase::Model$fitted()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="information_matrix">}\href{../../glmmrBase/html/Model.html#method-information_matrix}{\code{glmmrBase::Model$information_matrix()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="initialize">}\href{../../glmmrBase/html/Model.html#method-initialize}{\code{glmmrBase::Model$initialize()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n">}\href{../../glmmrBase/html/Model.html#method-n}{\code{glmmrBase::Model$n()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n_cluster">}\href{../../glmmrBase/html/Model.html#method-n_cluster}{\code{glmmrBase::Model$n_cluster()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="print">}\href{../../glmmrBase/html/Model.html#method-print}{\code{glmmrBase::Model$print()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="sim_data">}\href{../../glmmrBase/html/Model.html#method-sim_data}{\code{glmmrBase::Model$sim_data()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_cols">}\href{../../glmmrBase/html/Model.html#method-subset_cols}{\code{glmmrBase::Model$subset_cols()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_rows">}\href{../../glmmrBase/html/Model.html#method-subset_rows}{\code{glmmrBase::Model$subset_rows()}}\out{</span>}
-}
-\out{</details>}
-}
+\if{html}{\out{
+<details><summary>Inherited methods</summary>
+<ul>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="check"><a href='../../glmmrBase/html/Model.html#method-Model-check'><code>glmmrBase::Model$check()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="fitted"><a href='../../glmmrBase/html/Model.html#method-Model-fitted'><code>glmmrBase::Model$fitted()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="information_matrix"><a href='../../glmmrBase/html/Model.html#method-Model-information_matrix'><code>glmmrBase::Model$information_matrix()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="initialize"><a href='../../glmmrBase/html/Model.html#method-Model-initialize'><code>glmmrBase::Model$initialize()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n"><a href='../../glmmrBase/html/Model.html#method-Model-n'><code>glmmrBase::Model$n()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n_cluster"><a href='../../glmmrBase/html/Model.html#method-Model-n_cluster'><code>glmmrBase::Model$n_cluster()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="print"><a href='../../glmmrBase/html/Model.html#method-Model-print'><code>glmmrBase::Model$print()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="sim_data"><a href='../../glmmrBase/html/Model.html#method-Model-sim_data'><code>glmmrBase::Model$sim_data()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_cols"><a href='../../glmmrBase/html/Model.html#method-Model-subset_cols'><code>glmmrBase::Model$subset_cols()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_rows"><a href='../../glmmrBase/html/Model.html#method-Model-subset_rows'><code>glmmrBase::Model$subset_rows()</code></a></span></li>
+</ul>
+</details>
+}}
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-MCML"></a>}}
-\if{latex}{\out{\hypertarget{method-MCML}{}}}
+\if{html}{\out{<a id="method-ModelMCML-MCML"></a>}}
+\if{latex}{\out{\hypertarget{method-ModelMCML-MCML}{}}}
 \subsection{Method \code{MCML()}}{
 Markov Chain Monte Carlo Maximum Likelihood  model fitting
 \subsection{Usage}{
@@ -222,8 +222,8 @@ fit4 <- des$MCML(y = ysim,
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-clone}{}}}
+\if{html}{\out{<a id="method-ModelMCML-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-ModelMCML-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{

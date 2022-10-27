@@ -16,7 +16,6 @@
 #' @param X Matrix X of the GLMM
 #' @param y Vector of observations
 #' @param u Matrix of samples of the random effects. Each column is a sample.
-#' @param cov_par_fix A vector of covariance parameters for importance sampling
 #' @param family Character specifying the family
 #' @param link Character specifying the link function
 #' @param start Vector of starting values for the optimisation
@@ -40,7 +39,6 @@ mcml_optim <- function(D_data, Q, Z, X, y, u, family, link, start, trace, mcnr =
 #' @param X Matrix X of the GLMM
 #' @param y Vector of observations
 #' @param u Matrix of samples of the random effects. Each column is a sample.
-#' @param cov_par_fix A vector of covariance parameters for importance sampling
 #' @param family Character specifying the family
 #' @param link Character specifying the link function
 #' @param start Vector of starting values for the optimisation
@@ -70,13 +68,11 @@ mcml_simlik <- function(D_data, Q, Z, X, y, u, family, link, start, trace) {
 #' @param X Matrix X of the GLMM
 #' @param y Vector of observations
 #' @param u Matrix of samples of the random effects. Each column is a sample.
-#' @param cov_par_fix A vector of covariance parameters for importance sampling
 #' @param family Character specifying the family
 #' @param link Character specifying the link function
 #' @param start Vector of starting values for the optimisation
 #' @param trace Integer indicating what to report to the console, 0= nothing, 1-3=detailed output
 #' @param mcnr Logical indicating whether to use Newton-Raphson (TRUE) or Expectation Maximisation (FALSE)
-#' @param importance Logical indicating whether to use importance sampling step
 #' @return A vector of the parameters that maximise the simulated likelihood
 mcml_optim_sparse <- function(D_data, Q, Ap, Ai, Z, X, y, u, family, link, start, trace, mcnr = FALSE) {
     .Call(`_glmmrMCML_mcml_optim_sparse`, D_data, Q, Ap, Ai, Z, X, y, u, family, link, start, trace, mcnr)
@@ -99,7 +95,6 @@ mcml_optim_sparse <- function(D_data, Q, Ap, Ai, Z, X, y, u, family, link, start
 #' @param X Matrix X of the GLMM
 #' @param y Vector of observations
 #' @param u Matrix of samples of the random effects. Each column is a sample.
-#' @param cov_par_fix A vector of covariance parameters for importance sampling
 #' @param family Character specifying the family
 #' @param link Character specifying the link function
 #' @param start Vector of starting values for the optimisation
@@ -123,7 +118,6 @@ mcml_simlik_sparse <- function(D_data, Q, Ap, Ai, Z, X, y, u, family, link, star
 #' @param X Matrix X of the GLMM
 #' @param y Vector of observations
 #' @param u Matrix of samples of the random effects. Each column is a sample.
-#' @param cov_par_fix A vector of covariance parameters for importance sampling
 #' @param family Character specifying the family
 #' @param link Character specifying the link function
 #' @param start Vector of starting values for the optimisation
