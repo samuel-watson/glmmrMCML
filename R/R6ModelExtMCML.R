@@ -446,8 +446,17 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                  #if(!no_warnings&se.method!="approx")warning("Hessian was not positive definite, using approximation")
                                  #if(verbose&se.method=="approx")cat("using approximation\n")
                                  hessused <- FALSE
+                                 self$covariance$parameters <- theta[parInds$cov]
+                                 if(family%in%c("gaussian")){
+                                   orig_sigma <- self$sigma
+                                   self$sigma <- theta[parInds$sig]
+                                 }
                                  self$check(verbose=FALSE)
                                  invM <- Matrix::solve(self$information_matrix())
+                                 self$covariance$parameters <- orig_par_cov
+                                 if(family%in%c("gaussian")){
+                                   self$sigma <- orig_sigma
+                                 }
                                  if(!robust){
                                    SE[1:P] <- sqrt(Matrix::diag(invM))
                                  } else {

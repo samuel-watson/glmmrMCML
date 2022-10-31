@@ -50,9 +50,9 @@ print.mcml <- function(x, ...){
   cat("\ncAIC: ",round(x$aic,digits))
   cat("\nApproximate R-squared: Conditional: ",round(x$Rsq[1],digits)," Marginal: ",round(x$Rsq[2],digits))
   
-  #messages
-  if(x$permutation)message("Permutation test used for one parameter, other SEs are not reported. SEs and Z values
-are approximate based on the p-value, and assume normality.")
+#   #messages
+#   if(x$permutation)message("Permutation test used for one parameter, other SEs are not reported. SEs and Z values
+# are approximate based on the p-value, and assume normality.")
   #if(!x$hessian&!x$permutation)warning("Hessian was not positive definite, standard errors are approximate")
   if(!x$converged)warning("Algorithm did not converge")
   return(invisible(pars))
