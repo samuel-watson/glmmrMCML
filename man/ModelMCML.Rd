@@ -17,22 +17,12 @@ For the generalised linear mixed model
 \deqn{\mu = h^-1(X\beta + Z\gamma)}
 \deqn{\gamma \sim MVN(0,D)}
 
-where h is the link function. A Model in comprised of a \link[glmmr]{MeanFunction} object, which defines the family F,
-link function h, and fixed effects design matrix X, and a \link[glmmr]{Covariance} object, which defines Z and D. The class provides
-methods for analysis and simulation with these models.
+where h is the link function. A Model in comprised of a \link[glmmrBase]{MeanFunction} object, which defines the family F,
+link function h, and fixed effects design matrix X, and a \link[glmmrBase]{Covariance} object, which defines Z and D.
 
-This class provides methods for: data simulation (\code{sim_data()} and \code{fitted()}), model fitting using Markov Chain
-Monte Carlo Maximum Likelihood (MCML) methods (\code{MCML()}), design analysis via simulation including power (\code{analysis()}),
-deletion diagnostics (\code{dfbeta()}), and permutation tests including p-values and confidence intervals (\code{permutation()}).
-
-The class by default calculates the covariance matrix of the observations as:
-
-\deqn{\Sigma = W^{-1} + ZDZ^T}
-
-where \emph{W} is a diagonal matrix with the WLS iterated weights for each observation equal
-to, for individual \emph{i} \eqn{\phi a_i v(\mu_i)[h'(\mu_i)]^2} (see Table 2.1 in McCullagh
-and Nelder (1989) \url{ISBN:9780412317606}). For very large designs, this can be disabled as
-the memory requirements can be prohibitive.
+This class extends the \link[glmmrBase]{Model} class of the \code{glmmrBase} package by adding the member function \code{MCML()}, which
+provides Markov Chain Monte Carlo Maximum Likelihood model fitting. See \href{https://github.com/samuel-watson/glmmrBase/blob/master/README.md}{glmmrBase} for a
+detailed guide on model specification.
 
 \strong{MCMCML}
 Fits generalised linear mixed models using one of three algorithms: Markov Chain Newton
@@ -98,14 +88,6 @@ fit2 <- des$MCML(y = ysim,
 fit4 <- des$MCML(y = ysim,
   sim.lik.step = TRUE)  
 }
-}
-\references{
-Braun and Feng
-McCullagh
-Stan
-McCullagh and Nelder
-Approx GLMMs paper
-Watson confidence interval
 }
 \section{Super class}{
 \code{\link[glmmrBase:Model]{glmmrBase::Model}} -> \code{ModelMCML}
