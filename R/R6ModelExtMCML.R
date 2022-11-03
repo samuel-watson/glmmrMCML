@@ -8,29 +8,13 @@
 #' \deqn{\mu = h^-1(X\beta + Z\gamma)}
 #' \deqn{\gamma \sim MVN(0,D)}
 #' 
-#' where h is the link function. A Model in comprised of a \link[glmmr]{MeanFunction} object, which defines the family F, 
-#' link function h, and fixed effects design matrix X, and a \link[glmmr]{Covariance} object, which defines Z and D. The class provides
-#' methods for analysis and simulation with these models.
+#' where h is the link function. A Model in comprised of a \link[glmmrBase]{MeanFunction} object, which defines the family F, 
+#' link function h, and fixed effects design matrix X, and a \link[glmmrBase]{Covariance} object, which defines Z and D. 
 #' 
-#' This class provides methods for: data simulation (`sim_data()` and `fitted()`), model fitting using Markov Chain 
-#' Monte Carlo Maximum Likelihood (MCML) methods (`MCML()`), design analysis via simulation including power (`analysis()`),
-#' deletion diagnostics (`dfbeta()`), and permutation tests including p-values and confidence intervals (`permutation()`).
+#' This class extends the \link[glmmrBase]{Model} class of the `glmmrBase` package by adding the member function `MCML()`, which 
+#' provides Markov Chain Monte Carlo Maximum Likelihood model fitting. See \href{https://github.com/samuel-watson/glmmrBase/blob/master/README.md}{glmmrBase} for a 
+#' detailed guide on model specification.
 #' 
-#' The class by default calculates the covariance matrix of the observations as:
-#' 
-#' \deqn{\Sigma = W^{-1} + ZDZ^T}
-#' 
-#' where _W_ is a diagonal matrix with the WLS iterated weights for each observation equal
-#' to, for individual _i_ \eqn{\phi a_i v(\mu_i)[h'(\mu_i)]^2} (see Table 2.1 in McCullagh 
-#' and Nelder (1989) <ISBN:9780412317606>). For very large designs, this can be disabled as
-#' the memory requirements can be prohibitive.
-#' @references 
-#' Braun and Feng
-#' McCullagh
-#' Stan
-#' McCullagh and Nelder
-#' Approx GLMMs paper
-#' Watson confidence interval
 #' @importFrom Matrix Matrix
 #' @export 
 ModelMCML <- R6::R6Class("ModelMCML",
