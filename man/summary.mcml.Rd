@@ -7,7 +7,7 @@
 \method{summary}{mcml}(object, ...)
 }
 \arguments{
-\item{object}{an object of class "`mcml`" as a result of a call to MCML, see \link[glmmr]{Design}}
+\item{object}{an object of class "`mcml`" as a result of a call to MCML, see \link[glmmrBase]{Model}}
 
 \item{...}{Further arguments passed from other methods}
 }

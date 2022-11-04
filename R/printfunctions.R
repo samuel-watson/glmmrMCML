@@ -2,7 +2,7 @@
 #' 
 #' Print method for class "`mcml`"
 #' 
-#' @param x an object of class "`mcml`" as a result of a call to MCML, see \link[glmmr]{Design}
+#' @param x an object of class "`mcml`" as a result of a call to MCML, see \link[glmmrBase]{Model}
 #' @param ... Further arguments passed from other methods
 #' @details 
 #' `print.mcml` tries to replicate the output of other regression functions, such
@@ -62,7 +62,7 @@ print.mcml <- function(x, ...){
 #' 
 #' Summary method for class "`mcml`"
 #' 
-#' @param object an object of class "`mcml`" as a result of a call to MCML, see \link[glmmr]{Design}
+#' @param object an object of class "`mcml`" as a result of a call to MCML, see \link[glmmrBase]{Model}
 #' @param ... Further arguments passed from other methods
 #' @details 
 #' `print.mcml` tries to replicate the output of other regression functions, such

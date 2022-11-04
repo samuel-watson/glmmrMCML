@@ -3,7 +3,7 @@
 
 #include <rbobyqa.h>
 #include <SparseChol.h>
-#include "glmmrmcml.h"
+#include "glmmrMCML.h"
 
 using namespace Rcpp;
 using namespace arma;
