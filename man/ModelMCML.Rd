@@ -108,6 +108,7 @@ fit4 <- des$MCML(y = ysim,
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="initialize"><a href='../../glmmrBase/html/Model.html#method-Model-initialize'><code>glmmrBase::Model$initialize()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n"><a href='../../glmmrBase/html/Model.html#method-Model-n'><code>glmmrBase::Model$n()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n_cluster"><a href='../../glmmrBase/html/Model.html#method-Model-n_cluster'><code>glmmrBase::Model$n_cluster()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="power"><a href='../../glmmrBase/html/Model.html#method-Model-power'><code>glmmrBase::Model$power()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="print"><a href='../../glmmrBase/html/Model.html#method-Model-print'><code>glmmrBase::Model$print()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="sim_data"><a href='../../glmmrBase/html/Model.html#method-Model-sim_data'><code>glmmrBase::Model$sim_data()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_cols"><a href='../../glmmrBase/html/Model.html#method-Model-subset_cols'><code>glmmrBase::Model$subset_cols()</code></a></span></li>
@@ -124,8 +125,8 @@ Markov Chain Monte Carlo Maximum Likelihood  model fitting
 \if{html}{\out{<div class="r">}}\preformatted{ModelMCML$MCML(
   y,
   start,
-  se.method = "lik",
-  method = "mcem",
+  se.method = "approx",
+  method = "mcnr",
   sim.lik.step = FALSE,
   verbose = TRUE,
   tol = 0.01,

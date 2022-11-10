@@ -5,8 +5,9 @@
 \title{Likelihood maximisation for the GLMM using sparse matrix methods}
 \usage{
 mcml_optim_sparse(
-  D_data,
-  Q,
+  cov,
+  data,
+  eff_range,
   Ap,
   Ai,
   Z,
@@ -21,10 +22,12 @@ mcml_optim_sparse(
 )
 }
 \arguments{
-\item{D_data}{Named list specifying the covariance matrix D. Usually the return from the member function `get_D_data()` of the 
-covariance class}
+\item{cov}{An integer matrix with columns of block identifier, dimension of block, function definition, number of variables
+in the argument to the funciton, and index of the parameters, respectively. Rows are specific functions of each block.}
 
-\item{Q}{Integer specifying the number of covariance parameters}
+\item{data}{Vector of data. Created by flattening the matrices in column-major order of the data used in each block.}
+
+\item{eff_range}{Vector of values with the effective range parameters of the covariance functions, where required.}
 
 \item{Ap}{Integer vector of pointers, one for each column, specifying the initial (zero-based) index of elements in the column. Slot `p`
 of a matrix of a class defined in \link[Matrix]{sparseMatrix}}

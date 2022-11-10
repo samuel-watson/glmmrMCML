@@ -4,9 +4,16 @@
 \alias{aic_mcml}
 \title{Calculates the conditional Akaike Information Criterion for the GLMM}
 \usage{
-aic_mcml(Z, X, y, u, family, link, D_data, beta_par, cov_par)
+aic_mcml(cov, data, eff_range, Z, X, y, u, family, link, beta_par, cov_par)
 }
 \arguments{
+\item{cov}{An integer matrix with columns of block identifier, dimension of block, function definition, number of variables
+in the argument to the funciton, and index of the parameters, respectively. Rows are specific functions of each block.}
+
+\item{data}{Vector of data. Created by flattening the matrices in column-major order of the data used in each block.}
+
+\item{eff_range}{Vector of values with the effective range parameters of the covariance functions, where required.}
+
 \item{Z}{Matrix Z of the GLMM}
 
 \item{X}{Matrix X of the GLMM}
@@ -18,9 +25,6 @@ aic_mcml(Z, X, y, u, family, link, D_data, beta_par, cov_par)
 \item{family}{Character specifying the family}
 
 \item{link}{Character specifying the link function}
-
-\item{D_data}{Named list specifying the covariance matrix D. Usually the return from the member function `get_D_data()` of the 
-covariance class}
 
 \item{beta_par}{Vector specifying the values of the mean function parameters to estimate the AIC at}
 

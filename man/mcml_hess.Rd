@@ -4,13 +4,28 @@
 \alias{mcml_hess}
 \title{Generate Hessian matrix of GLMM}
 \usage{
-mcml_hess(D_data, Q, Z, X, y, u, family, link, start, tol = 1e-05, trace = 0L)
+mcml_hess(
+  cov,
+  data,
+  eff_range,
+  Z,
+  X,
+  y,
+  u,
+  family,
+  link,
+  start,
+  tol = 1e-05,
+  trace = 0L
+)
 }
 \arguments{
-\item{D_data}{Named list specifying the covariance matrix D. Usually the return from the member function `get_D_data()` of the 
-covariance class}
+\item{cov}{An integer matrix with columns of block identifier, dimension of block, function definition, number of variables
+in the argument to the funciton, and index of the parameters, respectively. Rows are specific functions of each block.}
 
-\item{Q}{Integer specifying the number of covariance parameters}
+\item{data}{Vector of data. Created by flattening the matrices in column-major order of the data used in each block.}
+
+\item{eff_range}{Vector of values with the effective range parameters of the covariance functions, where required.}
 
 \item{Z}{Matrix Z of the GLMM}
 
