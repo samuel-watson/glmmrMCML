@@ -65,6 +65,32 @@ Rcpp::List mcml_optim(const Eigen::ArrayXXi &cov,
   return L;
 }
 
+// [[Rcpp::export]]
+void mcml_doptim(const Eigen::ArrayXXi &cov,
+                      const Eigen::ArrayXd &data,
+                      const Eigen::ArrayXd &eff_range,
+                      const Eigen::MatrixXd &Z, 
+                      const Eigen::MatrixXd &X,
+                      const Eigen::VectorXd &y, 
+                      const Eigen::MatrixXd &u,
+                      std::string family, 
+                      std::string link,
+                      Eigen::ArrayXd start,
+                      int trace,
+                      bool mcnr = false){
+  
+  glmmr::DData dat(cov,data,eff_range);
+  Eigen::ArrayXd thetapars = start.segment(X.cols(),dat.n_cov_pars());
+  glmmr::MCMLDmatrix dmat(&dat, thetapars);
+  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,Z,X,y,u,family,link, start,trace);
+  
+  mc.d_optim();
+  
+  Eigen::VectorXd theta = mc.get_theta();
+  
+  Rcpp::Rcout << "\ntheta: " << theta.transpose();
+}
+
 //' Simulated likelihood optimisation step for MCML
 //' 
 //' @details
@@ -412,4 +438,3 @@ double mvn_ll(const Eigen::ArrayXXi &cov,
   glmmr::MCMLDmatrix dmat(&dat, gamma);
   return dmat.loglik(u);
 }
-

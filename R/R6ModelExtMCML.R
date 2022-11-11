@@ -107,6 +107,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                            m=100,
                                            max.iter = 30,
                                            sparse = FALSE,
+                                           usestan = FALSE,
                                            options = list()){
                              
                              # checks
@@ -179,19 +180,6 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                D <- as(self$covariance$D,"dsCMatrix")
                                Ap <- D@p
                                Ai <- D@i
-                               # if(!is.null(approx)){
-                               #   D <- Matrix::triu(D)
-                               #   for(i in 1:Q){
-                               #     if(i >(approx+1)){
-                               #       idx <- order(D[,i],decreasing = FALSE)
-                               #       idx <- idx[-(idx==i)]
-                               #       D[idx[1:(Q-approx)],i] <- 0
-                               #     }
-                               #   }
-                               #   D <- Matrix::forceSymmetric(D)
-                               #   D <- as(D,"dsCMatrix")
-                               #   print(D)
-                               # }
                                L <- Matrix::t(Matrix::chol(D))#SparseChol::LL_Cholesky(D)##
                                # print(L)
                              } else {
@@ -209,11 +197,15 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                mod <- suppressMessages(cmdstanr::cmdstan_model(model_file))
                              }
                              
+                             ## ADD IN INTERNAL MALA SAMPLER
+                             ## ADD SPARSE MALA SAMPLER
+                             
                              
                              ## ALGORITHMS
                              while(any(abs(theta-thetanew)>tol)&iter <= max.iter){
                                iter <- iter + 1
                                if(verbose)cat("\nIter: ",iter,": ")
+                               if(trace==2)t1 <- Sys.time()
                                thetanew <- theta
                                Xb <- Matrix::drop(self$mean_function$X %*% thetanew[parInds$b])
                                data <- list(
@@ -234,7 +226,11 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                               file=tempfile())
                                dsamps <- fit$draws("gamma",format = "matrix")
                                class(dsamps) <- "matrix"
+                               dsampsl <<- dsamps
                                dsamps <- Matrix::t(dsamps %*% L)
+                               dsamps <<- dsamps
+                               if(trace==2)t2 <- Sys.time()
+                               if(trace==2)cat("\nMCMC sampling took: ",t2-t1)
                                
                                ## ADD IN RSTAN FUNCTIONALITY ONCE PARALLEL METHODS AVAILABLE IN RSTAN
                                #dsamps <- matrix(dsamps[,1,],ncol=Q)%*%L
@@ -297,7 +293,8 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                } else {
                                  L <- Matrix::Matrix(self$covariance$get_chol_D(thetanew[parInds$cov]))
                                }
-                                 
+                               if(trace==2)t3 <- Sys.time()
+                               if(trace==2)cat("\nModel fitting took: ",t3-t2)
                                if(verbose)cat("\ntheta:",theta[all_pars])
                              }
                              

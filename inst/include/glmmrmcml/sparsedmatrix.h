@@ -81,18 +81,6 @@ public:
     update_parameters(gammaa);
   }
   
-  // double loglik(const Eigen::ArrayXd &u){
-  //   double logl;
-  //   double logdetD = 0;
-  //   for (auto& k : chol_->D)
-  //     logdetD += log(k);
-  //   std::vector<double> v(u.data(), u.data()+u.size());// = arma::conv_to<std::vector<double>>::from(u);//std::vector<double> v(n_);
-  //   chol_->ldl_lsolve(&v[0]);
-  //   chol_->ldl_d2solve(&v[0]);
-  //   double quadform = glmmr::algo::inner_sum(&v[0],&v[0],n_);
-  //   logl = (-0.5*n_ * log(2*M_PI) - 0.5*logdetD - 0.5*quadform);
-  //   return logl;
-  // }
   
   double loglik(const Eigen::MatrixXd &u){
     int ncols = u.cols();

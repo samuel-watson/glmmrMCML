@@ -22,14 +22,13 @@ namespace glmmr {
     return ans;
   }
   
-  inline double log_likelihood(Eigen::VectorXd y,
-                               Eigen::VectorXd mu,
+  inline double log_likelihood(double y,
+                               double mu,
                                double var_par,
                                std::string family,
                                std::string link) {
-    double logl = 0;
-    int n = y.size();
-    int i;
+    double logl;
+    
     const static std::unordered_map<std::string,int> string_to_case{
       {"poissonlog",1},
       {"poissonidentity",2},
@@ -42,33 +41,29 @@ namespace glmmr {
     };
     switch (string_to_case.at(family+link)){
     case 1:
-      for(i=0;i<n; i++){
-        double lf1 = log_factorial_approx(y(i));
-        logl += y(i)*mu(i) - exp(mu(i))-lf1;
-      }
+      {
+      double lf1 = log_factorial_approx(y);
+      logl = y*mu - exp(mu)-lf1;
       break;
+      }
     case 2:
-      for(i=0;i<n; i++){
-        double lf1 = log_factorial_approx(y[i]);
-        logl += y(i)*log(mu(i)) - mu(i)-lf1;
+      {
+        double lf1 = log_factorial_approx(y);
+        logl = y*log(mu) - mu-lf1;
+        break;
       }
-      break;
     case 3:
-      for(i=0; i<n; i++){
-        if(y(i)==1){
-          logl += log(1/(1+exp(-mu(i))));
-        } else if(y(i)==0){
-          logl += log(1 - 1/(1+exp(-mu(i))));
-        }
+      if(y==1){
+        logl = log(1/(1+exp(-mu)));
+      } else if(y==0){
+        logl = log(1 - 1/(1+exp(-mu)));
       }
       break;
     case 4:
-      for(i=0; i<n; i++){
-        if(y(i)==1){
-          logl += mu(i);
-        } else if(y(i)==0){
-          logl += log(1 - exp(mu(i)));
-        }
+      if(y==1){
+        logl = mu;
+      } else if(y==0){
+        logl = log(1 - exp(mu));
       }
       break;
     case 5:
@@ -78,13 +73,25 @@ namespace glmmr {
       logl = 0;
       break;
     case 7:
-      for(i=0; i<n; i++){
-        logl += -1*log(var_par) -0.5*log(2*M_PI) -
-          0.5*((y(i) - mu(i))/var_par)*((y(i) - mu(i))/var_par);
-      }
+      logl = -1*log(var_par) -0.5*log(2*M_PI) -
+        0.5*((y - mu)/var_par)*((y - mu)/var_par);
       break;
     case 8:
       logl = 0;
+    }
+    return logl;
+  }
+  
+  inline double log_likelihood(Eigen::VectorXd y,
+                               Eigen::VectorXd mu,
+                               double var_par,
+                               std::string family,
+                               std::string link) {
+    double logl = 0;
+    int n = y.size();
+    int i;
+    for(int i = 0; i<n; i++){
+      logl += log_likelihood(y(i),mu(i),var_par,family,link);
     }
     return logl;
   }
