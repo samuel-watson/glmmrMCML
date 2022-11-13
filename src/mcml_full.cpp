@@ -24,6 +24,7 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
                      int warmup = 500,
                      double tol = 1e-3,
                      bool verbose = true,
+                     double step_size = 0.015,
                      int trace = 0){
   
   glmmr::DData dat(cov,data,eff_range);
@@ -31,12 +32,12 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
   Eigen::VectorXd beta = start.segment(0,X.cols()).matrix();
   double var_par = family=="gaussian"||family=="gamma" ? start(start.size()-1) : 1;
   glmmr::MCMLDmatrix dmat(&dat, theta);
+  int niter = thin <= 1 ? m : (int)floor(m/thin);
+  Eigen::MatrixXd u = Eigen::MatrixXd::Zero(Z.cols(),niter);
   Eigen::MatrixXd L = dmat.genD(0,true,false);
-  glmmr::mcmc::mcmcModel model(Z,L,X,y,beta,var_par,family,link);
-  glmmr::mcmc::mcmcRun mcmc(&model);
-  int miter = thin > 1 ? (int)floor(m/thin) : m;
-  Eigen::MatrixXd u = Eigen::MatrixXd::Zero(Z.cols(),miter);
-  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,Z,X,y,u,family,link, start,trace);
+  glmmr::mcmlModel model(Z,&L,X,y,&u,beta,var_par,family,link);
+  glmmr::mcmc::mcmcRun mcmc(&model,trace);
+  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,&model, start,trace);
   
   Eigen::ArrayXd diff(start.size());
   double maxdiff = 1;
@@ -49,8 +50,7 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
   
   while(maxdiff > tol && iter <= maxiter){
     if(verbose)Rcpp::Rcout << "\n\nIter " << iter;
-    u = mcmc.sample(warmup,m,thin);
-    mc.u_ = u;
+    u = mcmc.sample(warmup,m,thin,step_size);
     
     if(!mcnr){
       mc.l_optim();
@@ -78,10 +78,9 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
     if(!converged){
       dmat.update_parameters(newtheta);
       L = dmat.genD(0,true,false);
-      model.update_beta(newbeta);
+      model.update_beta(beta);
       model.var_par_ = new_var_par;
-      model.L_ = L;
-      mc.u_ = u;
+      model.update_L();
     }
     
     iter++;
@@ -113,9 +112,13 @@ Eigen::MatrixXd mcmc_sample(const Eigen::MatrixXd &Z,
                             double var_par,
                             std::string family,
                             std::string link,
-                            int warmup, int nsamp, int thin){
-  glmmr::mcmc::mcmcModel model(Z,L,X,y,beta,var_par,family,link);
-  glmmr::mcmc::mcmcRun mcmc(&model);
-  Eigen::ArrayXXd samples = mcmc.sample(warmup,nsamp,thin);
+                            int warmup, int nsamp, int thin,
+                            double step_size= 0.1, int trace = 0){
+  int niter = thin <= 1 ? nsamp : (int)floor(nsamp/thin);
+  Eigen::MatrixXd u = Eigen::MatrixXd::Zero(Z.cols(),niter);
+  Eigen::MatrixXd L_ = L;
+  glmmr::mcmlModel model(Z,&L_,X,y,&u,beta,var_par,family,link);
+  glmmr::mcmc::mcmcRun mcmc(&model,trace);
+  Eigen::ArrayXXd samples = mcmc.sample(warmup,nsamp,thin,step_size);
   return samples;
 }

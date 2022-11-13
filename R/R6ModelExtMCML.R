@@ -226,9 +226,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                               file=tempfile())
                                dsamps <- fit$draws("gamma",format = "matrix")
                                class(dsamps) <- "matrix"
-                               dsampsl <<- dsamps
-                               dsamps <- Matrix::t(dsamps %*% L)
-                               dsamps <<- dsamps
+                               dsamps <- Matrix::Matrix(L %*% Matrix::t(dsamps)) #check this
                                if(trace==2)t2 <- Sys.time()
                                if(trace==2)cat("\nMCMC sampling took: ",t2-t1)
                                

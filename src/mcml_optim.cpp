@@ -38,7 +38,7 @@ Rcpp::List mcml_optim(const Eigen::ArrayXXi &cov,
                       const Eigen::MatrixXd &Z, 
                       const Eigen::MatrixXd &X,
                       const Eigen::VectorXd &y, 
-                      const Eigen::MatrixXd &u,
+                      Eigen::MatrixXd u,
                       std::string family, 
                       std::string link,
                       Eigen::ArrayXd start,
@@ -48,7 +48,9 @@ Rcpp::List mcml_optim(const Eigen::ArrayXXi &cov,
   glmmr::DData dat(cov,data,eff_range);
   Eigen::ArrayXd thetapars = start.segment(X.cols(),dat.n_cov_pars());
   glmmr::MCMLDmatrix dmat(&dat, thetapars);
-  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,Z,X,y,u,family,link, start,trace);
+  Eigen::VectorXd beta = start.segment(0,X.cols());
+  glmmr::mcmlModel model(Z,nullptr,X,y,&u,beta,1,family,link);
+  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,&model, start,trace);
   
   if(!mcnr){
     mc.l_optim();
@@ -57,12 +59,12 @@ Rcpp::List mcml_optim(const Eigen::ArrayXXi &cov,
   }
   mc.d_optim();
   
-  Eigen::VectorXd beta = mc.get_beta();
+  beta = mc.get_beta();
   Eigen::VectorXd theta = mc.get_theta();
   double sigma = mc.get_sigma();
   
-  Rcpp::List L = Rcpp::List::create(_["beta"] = beta, _["theta"] = theta,  _["sigma"] = sigma);
-  return L;
+  Rcpp::List out = Rcpp::List::create(_["beta"] = beta, _["theta"] = theta,  _["sigma"] = sigma);
+  return out;
 }
 
 // [[Rcpp::export]]
@@ -72,7 +74,7 @@ void mcml_doptim(const Eigen::ArrayXXi &cov,
                       const Eigen::MatrixXd &Z, 
                       const Eigen::MatrixXd &X,
                       const Eigen::VectorXd &y, 
-                      const Eigen::MatrixXd &u,
+                      Eigen::MatrixXd u,
                       std::string family, 
                       std::string link,
                       Eigen::ArrayXd start,
@@ -81,8 +83,10 @@ void mcml_doptim(const Eigen::ArrayXXi &cov,
   
   glmmr::DData dat(cov,data,eff_range);
   Eigen::ArrayXd thetapars = start.segment(X.cols(),dat.n_cov_pars());
+  Eigen::VectorXd beta = start.segment(0,X.cols());
+  glmmr::mcmlModel model(Z,nullptr,X,y,&u,beta,1,family,link);
   glmmr::MCMLDmatrix dmat(&dat, thetapars);
-  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,Z,X,y,u,family,link, start,trace);
+  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,&model, start,trace);
   
   mc.d_optim();
   
@@ -117,7 +121,7 @@ Rcpp::List mcml_simlik(const Eigen::ArrayXXi &cov,
                        const Eigen::MatrixXd &Z, 
                        const Eigen::MatrixXd &X,
                        const Eigen::VectorXd &y, 
-                       const Eigen::MatrixXd &u,
+                       Eigen::MatrixXd u,
                        std::string family, 
                        std::string link,
                        Eigen::ArrayXd start,
@@ -125,12 +129,14 @@ Rcpp::List mcml_simlik(const Eigen::ArrayXXi &cov,
   
   glmmr::DData dat(cov,data,eff_range);
   Eigen::ArrayXd thetapars = start.segment(X.cols(),dat.n_cov_pars());
+  Eigen::VectorXd beta = start.segment(0,X.cols());
+  glmmr::mcmlModel model(Z,nullptr,X,y,&u,beta,1,family,link);
   glmmr::MCMLDmatrix dmat(&dat, thetapars);
-  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,Z,X,y,u,family,link, start,trace);
+  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,&model,start,trace);
   
   mc.f_optim();
   
-  Eigen::VectorXd beta = mc.get_beta();
+  beta = mc.get_beta();
   Eigen::VectorXd theta = mc.get_theta();
   double sigma = mc.get_sigma();
   
@@ -174,7 +180,7 @@ Rcpp::List mcml_optim_sparse(const Eigen::ArrayXXi &cov,
                              const Eigen::MatrixXd &Z, 
                              const Eigen::MatrixXd &X,
                              const Eigen::VectorXd &y, 
-                             const Eigen::MatrixXd &u,
+                             Eigen::MatrixXd u,
                              std::string family, 
                              std::string link,
                              Eigen::ArrayXd start,
@@ -183,8 +189,10 @@ Rcpp::List mcml_optim_sparse(const Eigen::ArrayXXi &cov,
   
   glmmr::DData dat(cov,data,eff_range);
   Eigen::ArrayXd thetapars = start.segment(X.cols(),dat.n_cov_pars());
+  Eigen::VectorXd beta = start.segment(0,X.cols());
+  glmmr::mcmlModel model(Z,nullptr,X,y,&u,beta,1,family,link);
   glmmr::SparseDMatrix dmat(&dat, thetapars,Ap,Ai);
-  glmmr::mcmloptim<glmmr::SparseDMatrix> mc(&dmat,Z,X,y,u,family,link, start,trace);
+  glmmr::mcmloptim<glmmr::SparseDMatrix> mc(&dmat,&model, start,trace);
   
   if(!mcnr){
     mc.l_optim();
@@ -193,7 +201,7 @@ Rcpp::List mcml_optim_sparse(const Eigen::ArrayXXi &cov,
   }
   mc.d_optim();
 
-  Eigen::VectorXd beta = mc.get_beta();
+  beta = mc.get_beta();
   Eigen::VectorXd theta = mc.get_theta();
   double sigma = mc.get_sigma();
 
@@ -235,7 +243,7 @@ Rcpp::List mcml_simlik_sparse(const Eigen::ArrayXXi &cov,
                               const Eigen::MatrixXd &Z, 
                               const Eigen::MatrixXd &X,
                               const Eigen::VectorXd &y, 
-                              const Eigen::MatrixXd &u,
+                              Eigen::MatrixXd u,
                               std::string family, 
                               std::string link,
                               Eigen::ArrayXd start,
@@ -243,12 +251,14 @@ Rcpp::List mcml_simlik_sparse(const Eigen::ArrayXXi &cov,
   
   glmmr::DData dat(cov,data,eff_range);
   Eigen::ArrayXd thetapars = start.segment(X.cols(),dat.n_cov_pars());
+  Eigen::VectorXd beta = start.segment(0,X.cols());
+  glmmr::mcmlModel model(Z,nullptr,X,y,&u,beta,1,family,link);
   glmmr::SparseDMatrix dmat(&dat, thetapars,Ap,Ai);
-  glmmr::mcmloptim<glmmr::SparseDMatrix> mc(&dmat,Z,X,y,u,family,link, start,trace);
+  glmmr::mcmloptim<glmmr::SparseDMatrix> mc(&dmat,&model, start,trace);
   
   mc.f_optim();
   
-  Eigen::VectorXd beta = mc.get_beta();
+  beta = mc.get_beta();
   Eigen::VectorXd theta = mc.get_theta();
   double sigma = mc.get_sigma();
   
@@ -284,7 +294,7 @@ Eigen::MatrixXd mcml_hess(const Eigen::ArrayXXi &cov,
                     const Eigen::MatrixXd &Z, 
                     const Eigen::MatrixXd &X,
                     const Eigen::VectorXd &y, 
-                    const Eigen::MatrixXd &u,
+                    Eigen::MatrixXd u,
                     std::string family, 
                     std::string link,
                     Eigen::ArrayXd start,
@@ -293,8 +303,10 @@ Eigen::MatrixXd mcml_hess(const Eigen::ArrayXXi &cov,
   
   glmmr::DData dat(cov,data,eff_range);
   Eigen::ArrayXd theta = start.segment(X.cols(),dat.n_cov_pars());
+  Eigen::VectorXd beta = start.segment(0,X.cols());
+  glmmr::mcmlModel model(Z,nullptr,X,y,&u,beta,1,family,link);
   glmmr::MCMLDmatrix dmat(&dat, theta);
-  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,Z,X,y,u,family,link, start,trace);
+  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,&model, start,trace);
   
   Eigen::MatrixXd hess = mc.f_hess(tol);
   return hess;
@@ -334,7 +346,7 @@ Eigen::MatrixXd mcml_hess_sparse(const Eigen::ArrayXXi &cov,
                           const Eigen::MatrixXd &Z, 
                           const Eigen::MatrixXd &X,
                           const Eigen::VectorXd &y, 
-                          const Eigen::MatrixXd &u,
+                          Eigen::MatrixXd u,
                           std::string family, 
                           std::string link,
                           Eigen::ArrayXd start,
@@ -343,8 +355,10 @@ Eigen::MatrixXd mcml_hess_sparse(const Eigen::ArrayXXi &cov,
   
   glmmr::DData dat(cov,data,eff_range);
   Eigen::ArrayXd theta = start.segment(X.cols(),dat.n_cov_pars());
+  Eigen::VectorXd beta = start.segment(0,X.cols());
+  glmmr::mcmlModel model(Z,nullptr,X,y,&u,beta,1,family,link);
   glmmr::SparseDMatrix dmat(&dat, theta,Ap,Ai);
-  glmmr::mcmloptim<glmmr::SparseDMatrix> mc(&dmat,Z,X,y,u,family,link, start,trace);
+  glmmr::mcmloptim<glmmr::SparseDMatrix> mc(&dmat,&model, start,trace);
   
   Eigen::MatrixXd hess = mc.f_hess(tol);
   return hess;
@@ -373,7 +387,7 @@ double aic_mcml(const Eigen::ArrayXXi &cov,
                 const Eigen::MatrixXd &Z, 
                 const Eigen::MatrixXd &X,
                 const Eigen::VectorXd &y, 
-                const Eigen::MatrixXd &u, 
+                Eigen::MatrixXd u, 
                 std::string family, 
                 std::string link,
                 const Eigen::VectorXd& beta_par,
@@ -381,38 +395,29 @@ double aic_mcml(const Eigen::ArrayXXi &cov,
   
   int niter = u.cols();
   int n = y.size();
-  //arma::vec zd(n);
   int P = X.cols();
-  Eigen::VectorXd xb(n);
   double var_par;
   int dof = beta_par.size() + cov_par.size();
+  Eigen::VectorXd beta;
   
   if(family=="gaussian"){
     var_par = beta_par(P-1);
-    xb = X*beta_par.segment(0,P-1);
+    //xb = X*beta_par.segment(0,P-1);
+    beta = beta_par.segment(0,P-1);
   } else {
     var_par = 0;
-    xb = X*beta_par;
+    // xb = X*beta_par;
+    beta = beta_par;
   }
   
   glmmr::DData dat(cov,data,eff_range);
   glmmr::MCMLDmatrix dmat(&dat, cov_par);
+  glmmr::mcmlModel model(Z,nullptr,X,y,&u,beta,var_par,family,link);
   
-  // Eigen::ArrayXd dmvvec = Eigen::ArrayXd::Zero(niter);
-  // //#pragma omp parallel for
-  // for(int j=0;j<niter;j++){
-  //   dmvvec(j) += dmat.loglik(u.col(j));
-  // }
   double dmvvec = dmat.loglik(u);
+  double ll = model.log_likelihood();
   
-  Eigen::ArrayXd ll = Eigen::ArrayXd::Zero(niter);
-  Eigen::MatrixXd zd = Z * u;
-#pragma omp parallel for
-  for(int j=0; j<niter ; j++){
-    ll(j) += glmmr::maths::log_likelihood(y,xb + zd.col(j),var_par,family,link);
-  }
-  
-  return (-2*( ll.mean() + dmvvec ) + 2*dof); 
+  return (-2*( ll + dmvvec ) + 2*dof); 
   
 }
 

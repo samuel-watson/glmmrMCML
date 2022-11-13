@@ -62,7 +62,7 @@ gen_u_samples <- function(y,X,Z,L,beta,family,sigma=1,warmup_iter=100,m=100){
                                      refresh = 0),
                    file=tempfile())
     dsamps <- fit$draws("gamma",format = "matrix")
-    dsamps <- t(dsamps %*% L)
+    dsamps <- L%*%t(dsamps)
     return(dsamps)
     }
  

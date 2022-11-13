@@ -42,7 +42,7 @@ namespace glmmr {
     switch (string_to_case.at(family+link)){
     case 1:
       {
-      double lf1 = log_factorial_approx(y);
+      double lf1 = glmmr::maths::log_factorial_approx(y);
       logl = y*mu - exp(mu)-lf1;
       break;
       }
@@ -82,19 +82,19 @@ namespace glmmr {
     return logl;
   }
   
-  inline double log_likelihood(Eigen::VectorXd y,
-                               Eigen::VectorXd mu,
-                               double var_par,
-                               std::string family,
-                               std::string link) {
-    double logl = 0;
-    int n = y.size();
-    int i;
-    for(int i = 0; i<n; i++){
-      logl += log_likelihood(y(i),mu(i),var_par,family,link);
-    }
-    return logl;
-  }
+  // inline double log_likelihood(Eigen::VectorXd y,
+  //                              Eigen::VectorXd mu,
+  //                              double var_par,
+  //                              std::string family,
+  //                              std::string link) {
+  //   double logl = 0;
+  //   int n = y.size();
+  //   int i;
+  //   for(int i = 0; i<n; i++){
+  //     logl += log_likelihood(y(i),mu(i),var_par,family,link);
+  //   }
+  //   return logl;
+  // }
   
   
   }
