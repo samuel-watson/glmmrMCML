@@ -1,8 +1,6 @@
 #ifndef MOREMATHS_H
 #define MOREMATHS_H
 
-#define _USE_MATH_DEFINES
-
 #include <cmath> 
 #include <unordered_map>
 #include <RcppEigen.h>
@@ -12,12 +10,13 @@
 namespace glmmr {
   namespace maths {
   
-  inline double log_factorial_approx(int n){
+  //ramanujans approximation
+  inline double log_factorial_approx(double n){
     double ans;
     if(n==0){
       ans = 0;
     } else {
-      ans = n*log(n) - n + log(n*(1+4*n*(1+2*n)))/6 + log(M_PI)/2;
+      ans = n*log(n) - n + log(n*(1+4*n*(1+2*n)))/6 + log(3.141593)/2;
     }
     return ans;
   }
@@ -42,8 +41,10 @@ namespace glmmr {
     switch (string_to_case.at(family+link)){
     case 1:
       {
+      
       double lf1 = glmmr::maths::log_factorial_approx(y);
-      logl = y*mu - exp(mu)-lf1;
+      logl = y * mu - exp(mu) - lf1;
+      //Rcpp::Rcout << "\n lf: " << lf1 << " ymu " << y*mu - exp(mu) << " y " << y << " mu " << mu << " logl " << logl;
       break;
       }
     case 2:
@@ -54,9 +55,9 @@ namespace glmmr {
       }
     case 3:
       if(y==1){
-        logl = log(1/(1+exp(-mu)));
+        logl = log(1/(1+exp(-1.0*mu)));
       } else if(y==0){
-        logl = log(1 - 1/(1+exp(-mu)));
+        logl = log(1 - 1/(1+exp(-1.0*mu)));
       }
       break;
     case 4:
@@ -73,7 +74,7 @@ namespace glmmr {
       logl = 0;
       break;
     case 7:
-      logl = -1*log(var_par) -0.5*log(2*M_PI) -
+      logl = -1*log(var_par) -0.5*log(2*3.141593) -
         0.5*((y - mu)/var_par)*((y - mu)/var_par);
       break;
     case 8:

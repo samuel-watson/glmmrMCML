@@ -5,6 +5,10 @@
 #include <glmmr.h>
 #include "moremaths.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace glmmr {
 
 class mcmlModel {
@@ -34,7 +38,7 @@ public:
     double var_par,
     std::string family, 
     std::string link
-  ) : X_(X), xb_(X.rows()), Z_(Z), ZL_(X.rows(),X.rows()), L_(L),  
+  ) : X_(X), xb_(X.rows()), Z_(Z), ZL_(X.rows(),Z.cols()), L_(L),  
       y_(y), u_(u), var_par_(var_par), family_(family), link_(link) {
     xb_ = X* beta;
     if(L != nullptr)ZL_ = Z * (*L);  
@@ -62,18 +66,27 @@ public:
   double log_prob(const Eigen::VectorXd &v){
     Eigen::VectorXd mu = xb_ + ZL_*v;
     Eigen::ArrayXd ll(n_);
-    Eigen::ArrayXd lp(Q_);
+    Eigen::ArrayXd lp(v.size());
+    
+    // Rcpp::Rcout << "\nmu: " << mu.transpose().head(15);
+    // Rcpp::Rcout << "\nmu: " << y_.transpose().head(15);
+    // Rcpp::Rcout << "\nvarpar: " << var_par_;
+    // Rcpp::Rcout << "\nfmaily: " << family_;
+    // Rcpp::Rcout << "\nlink: " << link_;
+    
 #pragma omp parallel for
     for(int i = 0; i < n_; i++){
       ll(i) = glmmr::maths::log_likelihood(y_(i),mu(i),var_par_,family_,link_);
     }
     
 #pragma omp parallel for
-    for(int i = 0; i < Q_; i++){
-      lp(i) = glmmr::maths::log_likelihood(v(i),0,1,family_,link_);
+    for(int i = 0; i < v.size(); i++){
+      lp(i) = glmmr::maths::log_likelihood(v(i),0,1,"gaussian","identity");
     }
     
+    //Rcpp::Rcout << "\n ll: " << ll.sum() << " lp: " << lp.sum();
     return ll.sum() + lp.sum();
+
   }
   
   // update this for all the gradient in glmmr maths
@@ -81,7 +94,6 @@ public:
     
     Eigen::VectorXd grad = Eigen::VectorXd::Zero(v.size());
     Eigen::VectorXd mu = xb_ + ZL_*v;
-    
     
     const static std::unordered_map<std::string,int> string_to_case{
       {"poissonlog",1},
@@ -109,6 +121,7 @@ public:
     }
     case 3:
       for(int i = 0; i < mu.size(); i++){
+        //mu(i) = y_(i) - 1/(exp(-1*mu(i))+1);
         if(y_(i)==1){
           mu(i) = 1/(exp(mu(i))+1);
         } else if(y_(i)==0){
@@ -134,7 +147,7 @@ public:
     case 7:
       {
         Eigen::VectorXd resid = y_ - mu;
-        grad = (-1/(var_par_*var_par_))*ZL_.transpose()*resid - v;
+        grad = (-1/(var_par_*var_par_))*(ZL_.transpose()*resid) - v;
         break;
       }
     case 8: //need to update

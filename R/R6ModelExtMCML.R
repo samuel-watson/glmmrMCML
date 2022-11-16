@@ -107,7 +107,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                            m=100,
                                            max.iter = 30,
                                            sparse = FALSE,
-                                           usestan = FALSE,
+                                           warmup = 100,
                                            options = list()){
                              
                              # checks
@@ -116,9 +116,11 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              #set options
                              if(!is(options,"list"))stop("options should be a list")
                              no_warnings <- ifelse("no_warnings"%in%names(options),options$no_warnings,FALSE)
-                             warmup_iter <- ifelse("warmup_iter"%in%names(options),options$warmup_iter,500)
+                             #warmup_iter <- ifelse("warmup_iter"%in%names(options),options$warmup_iter,500)
                              fd_tol <- ifelse("fd_tol"%in%names(options),options$fd_tol,1e-4)
                              trace <- ifelse("trace"%in%names(options),options$trace,0)
+                             #step_size <- ifelse("trace"%in%names(options),options$trace,0.015)
+                             
                              
                              P <- ncol(self$mean_function$X)
                              R <- length(unlist(self$covariance$parameters))
@@ -137,6 +139,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              
                              orig_par_b <- self$mean_function$parameters
                              orig_par_cov <- self$covariance$parameters
+                             
                              
                              #check starting values
                              if(family%in%c("gaussian")){
@@ -170,11 +173,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              iter <- 0
                              niter <- m
                              Q = ncol(self$covariance$Z)
-                             
-                             #parse family
-                             file_type <- mcnr_family(self$mean_function$family)
                              invfunc <- self$mean_function$family$linkinv
-                             
                              ## generate sparse matrix if sparse option
                              if(sparse){
                                D <- as(self$covariance$D,"dsCMatrix")
@@ -185,6 +184,9 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              } else {
                                L <- Matrix::Matrix(self$covariance$get_chol_D())
                              }
+                             
+                             #parse family
+                             file_type <- mcnr_family(self$mean_function$family)
                              
                              ## set up sampler
                              if(!requireNamespace("cmdstanr")){
@@ -197,6 +199,17 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                mod <- suppressMessages(cmdstanr::cmdstan_model(model_file))
                              }
                              
+                             
+                             Xb <- Matrix::drop(self$mean_function$X %*% theta[parInds$b])
+                             data <- list(
+                               N = self$n(),
+                               Q = Q,
+                               Xb = Xb,
+                               Z = as.matrix(self$covariance$Z%*%L),
+                               y = y,
+                               sigma = theta[parInds$sig],
+                               type=as.numeric(file_type$type)
+                             )
                              ## ADD IN INTERNAL MALA SAMPLER
                              ## ADD SPARSE MALA SAMPLER
                              
@@ -207,20 +220,14 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                if(verbose)cat("\nIter: ",iter,": ")
                                if(trace==2)t1 <- Sys.time()
                                thetanew <- theta
-                               Xb <- Matrix::drop(self$mean_function$X %*% thetanew[parInds$b])
-                               data <- list(
-                                 N = self$n(),
-                                 Q = Q,
-                                 Xb = Xb,
-                                 Z = as.matrix(self$covariance$Z%*%L),
-                                 y = y,
-                                 sigma = thetanew[parInds$sig],
-                                 type=as.numeric(file_type$type)
-                               )
+                               data$Xb <-  Matrix::drop(self$mean_function$X %*% thetanew[parInds$b])
+                               data$Z <- as.matrix(self$covariance$Z%*%L)
+                               data$sigma <- thetanew[parInds$sig]
+                               
                                
                                capture.output(fit <- mod$sample(data = data,
                                                                 chains = 1,
-                                                                iter_warmup = warmup_iter,
+                                                                iter_warmup = warmup,
                                                                 iter_sampling = m,
                                                                 refresh = 0),
                                               file=tempfile())
@@ -232,24 +239,24 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                
                                ## ADD IN RSTAN FUNCTIONALITY ONCE PARALLEL METHODS AVAILABLE IN RSTAN
                                #dsamps <- matrix(dsamps[,1,],ncol=Q)%*%L
-                              # if(mcmc){
-                              #   capture.output(suppressWarnings(fit <- rstan::sampling(stanmodels[[gsub(".stan","",file_type$file)]],
-                              #                                                    data = data,warmup = 100,
-                              #                                                    iter = 100 + m,chains=1)))
-                              # } else {
-                              #   capture.output(suppressWarnings(fit <- rstan::vb(stanmodels[[gsub(".stan","",file_type$file)]],
-                              #                                                    data = data,
-                              #                                                    algorithm="meanfield",
-                              #                                                    keep_every=10,
-                              #                                                    iter=1000,
-                              #                                                    output_samples = m)))
-                              # }
+                               # if(mcmc){
+                               #   capture.output(suppressWarnings(fit <- rstan::sampling(stanmodels[[gsub(".stan","",file_type$file)]],
+                               #                                                    data = data,warmup = 100,
+                               #                                                    iter = 100 + m,chains=1)))
+                               # } else {
+                               #   capture.output(suppressWarnings(fit <- rstan::vb(stanmodels[[gsub(".stan","",file_type$file)]],
+                               #                                                    data = data,
+                               #                                                    algorithm="meanfield",
+                               #                                                    keep_every=10,
+                               #                                                    iter=1000,
+                               #                                                    output_samples = m)))
+                               # }
                                
                                # dsamps <- rstan::extract(fit,"gamma")
                                # #dsamps <- matrix(dsamps[,1,],ncol=Q)
                                # dsamps <- t(dsamps$gamma %*% L)
                                
-                              if(sparse){
+                               if(sparse){
                                  fit_pars <- do.call(mcml_optim_sparse,append(self$covariance$get_D_data(),
                                                                               list(
                                                                                 eff_range = self$covariance$eff_range,
@@ -280,11 +287,11 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                                                          mcnr = method=="mcnr"
                                                                        )))
                                }
-
+                               
                                theta[parInds$b] <-  drop(fit_pars$beta)
                                if(self$mean_function$family[[1]] == "gaussian")theta[parInds$sig] <- fit_pars$sigma
                                theta[parInds$cov] <- drop(fit_pars$theta)
-
+                               
                                if(sparse){
                                  L <- SparseChol::sparse_L(fit_pars)
                                  L <- L%*%Matrix::Diagonal(x=sqrt(fit_pars$D))
@@ -295,6 +302,8 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                if(trace==2)cat("\nModel fitting took: ",t3-t2)
                                if(verbose)cat("\ntheta:",theta[all_pars])
                              }
+                             
+                             
                              
                              not_conv <- iter >= max.iter|any(abs(theta-thetanew)>tol)
                              if(not_conv&!no_warnings)warning(paste0("algorithm not converged. Max. difference between iterations :",max(abs(theta-thetanew)),". Suggest 

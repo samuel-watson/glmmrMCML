@@ -41,7 +41,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // mcmc_sample
-Eigen::MatrixXd mcmc_sample(const Eigen::MatrixXd& Z, const Eigen::MatrixXd& L, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, const Eigen::VectorXd& beta, double var_par, std::string family, std::string link, int warmup, int nsamp, int thin, double step_size, int trace);
+Eigen::ArrayXXd mcmc_sample(const Eigen::MatrixXd& Z, const Eigen::MatrixXd& L, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, const Eigen::VectorXd& beta, double var_par, std::string family, std::string link, int warmup, int nsamp, int thin, double step_size, int trace);
 RcppExport SEXP _glmmrMCML_mcmc_sample(SEXP ZSEXP, SEXP LSEXP, SEXP XSEXP, SEXP ySEXP, SEXP betaSEXP, SEXP var_parSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP warmupSEXP, SEXP nsampSEXP, SEXP thinSEXP, SEXP step_sizeSEXP, SEXP traceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

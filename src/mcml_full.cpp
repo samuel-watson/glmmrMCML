@@ -36,7 +36,7 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
   Eigen::MatrixXd u = Eigen::MatrixXd::Zero(Z.cols(),niter);
   Eigen::MatrixXd L = dmat.genD(0,true,false);
   glmmr::mcmlModel model(Z,&L,X,y,&u,beta,var_par,family,link);
-  glmmr::mcmc::mcmcRun mcmc(&model,trace);
+  glmmr::mcmc::mcmcRun mcmc(&model,trace,step_size);
   glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,&model, start,trace);
   
   Eigen::ArrayXd diff(start.size());
@@ -47,16 +47,20 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
   Eigen::VectorXd newtheta = Eigen::VectorXd::Zero(theta.size());
   double new_var_par = 1;
   bool converged = false;
+  if(trace > 0 ) Rcpp::Rcout << "\n STARTING MCMCML \n " ;
   
   while(maxdiff > tol && iter <= maxiter){
     if(verbose)Rcpp::Rcout << "\n\nIter " << iter;
-    u = mcmc.sample(warmup,m,thin,step_size);
+    if(trace > 0 ) Rcpp::Rcout << "\n MCMC sampling \n" ;
+    u = mcmc.sample(warmup,m,thin);
     
+    if(trace > 0 ) Rcpp::Rcout << "\n Estimating beta " ;
     if(!mcnr){
       mc.l_optim();
     } else {
       mc.mcnr();
     }
+    if(trace > 0 ) Rcpp::Rcout << "\n Estimating theta " ;
     mc.d_optim();
     
     newbeta = mc.get_beta();
@@ -94,7 +98,7 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
     
     
   }
-    
+  
   if(verbose && !converged) Rcpp::Rcout << " \n Warning: algorithm not converged and reached maximum iterations" << std::endl;
   
   Rcpp::List res = Rcpp::List::create(_["beta"] = beta, _["theta"] = theta,  _["sigma"] = var_par,
@@ -104,7 +108,7 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd mcmc_sample(const Eigen::MatrixXd &Z,
+Eigen::ArrayXXd mcmc_sample(const Eigen::MatrixXd &Z,
                             const Eigen::MatrixXd &L,
                             const Eigen::MatrixXd &X,
                             const Eigen::VectorXd &y,
@@ -114,11 +118,13 @@ Eigen::MatrixXd mcmc_sample(const Eigen::MatrixXd &Z,
                             std::string link,
                             int warmup, int nsamp, int thin,
                             double step_size= 0.1, int trace = 0){
+  
   int niter = thin <= 1 ? nsamp : (int)floor(nsamp/thin);
   Eigen::MatrixXd u = Eigen::MatrixXd::Zero(Z.cols(),niter);
   Eigen::MatrixXd L_ = L;
   glmmr::mcmlModel model(Z,&L_,X,y,&u,beta,var_par,family,link);
-  glmmr::mcmc::mcmcRun mcmc(&model,trace);
-  Eigen::ArrayXXd samples = mcmc.sample(warmup,nsamp,thin,step_size);
+  glmmr::mcmc::mcmcRun mcmc(&model,trace,step_size);
+  if(trace > 0 ) Rcpp::Rcout << " \n STARTING SAMPLING" << std::endl;
+  Eigen::ArrayXXd samples = mcmc.sample(warmup,nsamp,thin);
   return samples;
 }
