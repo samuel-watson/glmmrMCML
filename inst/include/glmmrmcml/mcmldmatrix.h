@@ -56,8 +56,8 @@ namespace glmmr {
         int n = u.size();
         if((data_->subcov_.col(2) == 1).all()){
           for(int k=0; k<n; k++){
-            logl += -0.5*log(dmat(k,k)) -0.5*log(2*M_PI) -
-              0.5*u(k)*u(k)/dmat(k,k);
+            logl += -0.5*log(dmat(k,k)*dmat(k,k)) -0.5*log(2*M_PI) -
+              0.5*u(k)*u(k)/(dmat(k,k)*dmat(k,k));
           }
         } else {
           double logdetD = 0;

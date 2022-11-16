@@ -107,6 +107,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                            m=100,
                                            max.iter = 30,
                                            sparse = FALSE,
+                                           usestan = TRUE,
                                            warmup = 100,
                                            options = list()){
                              
@@ -190,7 +191,8 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              
                              ## set up sampler
                              if(!requireNamespace("cmdstanr")){
-                               stop("cmdstanr not available")
+                               stop("cmdstanr is required to use Stan for sampling. See https://mc-stan.org/cmdstanr/ for details on how to install.\n
+                                    Set option usestan=FALSE to use the in-built MCMC sampler.")
                              } else {
                                model_file <- system.file("stan",
                                                          file_type$file,
@@ -213,139 +215,165 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              ## ADD IN INTERNAL MALA SAMPLER
                              ## ADD SPARSE MALA SAMPLER
                              
-                             
-                             ## ALGORITHMS
-                             while(any(abs(theta-thetanew)>tol)&iter <= max.iter){
-                               iter <- iter + 1
-                               if(verbose)cat("\nIter: ",iter,": ")
-                               if(trace==2)t1 <- Sys.time()
-                               thetanew <- theta
-                               data$Xb <-  Matrix::drop(self$mean_function$X %*% thetanew[parInds$b])
-                               data$Z <- as.matrix(self$covariance$Z%*%L)
-                               data$sigma <- thetanew[parInds$sig]
-                               
-                               
-                               capture.output(fit <- mod$sample(data = data,
-                                                                chains = 1,
-                                                                iter_warmup = warmup,
-                                                                iter_sampling = m,
-                                                                refresh = 0),
-                                              file=tempfile())
-                               dsamps <- fit$draws("gamma",format = "matrix")
-                               class(dsamps) <- "matrix"
-                               dsamps <- Matrix::Matrix(L %*% Matrix::t(dsamps)) #check this
-                               if(trace==2)t2 <- Sys.time()
-                               if(trace==2)cat("\nMCMC sampling took: ",t2-t1)
-                               
-                               ## ADD IN RSTAN FUNCTIONALITY ONCE PARALLEL METHODS AVAILABLE IN RSTAN
-                               #dsamps <- matrix(dsamps[,1,],ncol=Q)%*%L
-                               # if(mcmc){
-                               #   capture.output(suppressWarnings(fit <- rstan::sampling(stanmodels[[gsub(".stan","",file_type$file)]],
-                               #                                                    data = data,warmup = 100,
-                               #                                                    iter = 100 + m,chains=1)))
-                               # } else {
-                               #   capture.output(suppressWarnings(fit <- rstan::vb(stanmodels[[gsub(".stan","",file_type$file)]],
-                               #                                                    data = data,
-                               #                                                    algorithm="meanfield",
-                               #                                                    keep_every=10,
-                               #                                                    iter=1000,
-                               #                                                    output_samples = m)))
-                               # }
-                               
-                               # dsamps <- rstan::extract(fit,"gamma")
-                               # #dsamps <- matrix(dsamps[,1,],ncol=Q)
-                               # dsamps <- t(dsamps$gamma %*% L)
-                               
-                               if(sparse){
-                                 fit_pars <- do.call(mcml_optim_sparse,append(self$covariance$get_D_data(),
-                                                                              list(
-                                                                                eff_range = self$covariance$eff_range,
-                                                                                Ap=Ap,
-                                                                                Ai=Ai,
-                                                                                Z=as.matrix(self$covariance$Z),
-                                                                                X=as.matrix(self$mean_function$X),
-                                                                                y=y,
-                                                                                u=as.matrix(dsamps),
-                                                                                family=self$mean_function$family[[1]],
-                                                                                link=self$mean_function$family[[2]],
-                                                                                start = theta,
-                                                                                trace=trace,
-                                                                                mcnr = method=="mcnr"
-                                                                              )))
-                               } else {
-                                 fit_pars <- do.call(mcml_optim,append(self$covariance$get_D_data(),
-                                                                       list(
-                                                                         eff_range = self$covariance$eff_range,
-                                                                         Z=as.matrix(self$covariance$Z),
-                                                                         X=as.matrix(self$mean_function$X),
-                                                                         y=y,
-                                                                         u=as.matrix(dsamps),
-                                                                         family=self$mean_function$family[[1]],
-                                                                         link=self$mean_function$family[[2]],
-                                                                         start = theta,
-                                                                         trace=trace,
-                                                                         mcnr = method=="mcnr"
-                                                                       )))
+                             if(usestan){
+                               ## ALGORITHMS
+                               while(any(abs(theta-thetanew)>tol)&iter <= max.iter){
+                                 iter <- iter + 1
+                                 if(verbose)cat("\nIter: ",iter,": ")
+                                 if(trace==2)t1 <- Sys.time()
+                                 thetanew <- theta
+                                 data$Xb <-  Matrix::drop(self$mean_function$X %*% thetanew[parInds$b])
+                                 data$Z <- as.matrix(self$covariance$Z%*%L)
+                                 data$sigma <- thetanew[parInds$sig]
+                                 
+                                 
+                                 capture.output(fit <- mod$sample(data = data,
+                                                                  chains = 1,
+                                                                  iter_warmup = warmup,
+                                                                  iter_sampling = m,
+                                                                  refresh = 0),
+                                                file=tempfile())
+                                 dsamps <- fit$draws("gamma",format = "matrix")
+                                 class(dsamps) <- "matrix"
+                                 dsamps <- Matrix::Matrix(L %*% Matrix::t(dsamps)) #check this
+                                 if(trace==2)t2 <- Sys.time()
+                                 if(trace==2)cat("\nMCMC sampling took: ",t2-t1)
+                                 
+                                 ## ADD IN RSTAN FUNCTIONALITY ONCE PARALLEL METHODS AVAILABLE IN RSTAN
+                                 #dsamps <- matrix(dsamps[,1,],ncol=Q)%*%L
+                                 # if(mcmc){
+                                 #   capture.output(suppressWarnings(fit <- rstan::sampling(stanmodels[[gsub(".stan","",file_type$file)]],
+                                 #                                                    data = data,warmup = 100,
+                                 #                                                    iter = 100 + m,chains=1)))
+                                 # } else {
+                                 #   capture.output(suppressWarnings(fit <- rstan::vb(stanmodels[[gsub(".stan","",file_type$file)]],
+                                 #                                                    data = data,
+                                 #                                                    algorithm="meanfield",
+                                 #                                                    keep_every=10,
+                                 #                                                    iter=1000,
+                                 #                                                    output_samples = m)))
+                                 # }
+                                 
+                                 # dsamps <- rstan::extract(fit,"gamma")
+                                 # #dsamps <- matrix(dsamps[,1,],ncol=Q)
+                                 # dsamps <- t(dsamps$gamma %*% L)
+                                 
+                                 if(sparse){
+                                   fit_pars <- do.call(mcml_optim_sparse,append(self$covariance$get_D_data(),
+                                                                                list(
+                                                                                  eff_range = self$covariance$eff_range,
+                                                                                  Ap=Ap,
+                                                                                  Ai=Ai,
+                                                                                  Z=as.matrix(self$covariance$Z),
+                                                                                  X=as.matrix(self$mean_function$X),
+                                                                                  y=y,
+                                                                                  u=as.matrix(dsamps),
+                                                                                  family=self$mean_function$family[[1]],
+                                                                                  link=self$mean_function$family[[2]],
+                                                                                  start = theta,
+                                                                                  trace=trace,
+                                                                                  mcnr = method=="mcnr"
+                                                                                )))
+                                 } else {
+                                   fit_pars <- do.call(mcml_optim,append(self$covariance$get_D_data(),
+                                                                         list(
+                                                                           eff_range = self$covariance$eff_range,
+                                                                           Z=as.matrix(self$covariance$Z),
+                                                                           X=as.matrix(self$mean_function$X),
+                                                                           y=y,
+                                                                           u=as.matrix(dsamps),
+                                                                           family=self$mean_function$family[[1]],
+                                                                           link=self$mean_function$family[[2]],
+                                                                           start = theta,
+                                                                           trace=trace,
+                                                                           mcnr = method=="mcnr"
+                                                                         )))
+                                 }
+                                 
+                                 theta[parInds$b] <-  drop(fit_pars$beta)
+                                 if(self$mean_function$family[[1]] == "gaussian")theta[parInds$sig] <- fit_pars$sigma
+                                 theta[parInds$cov] <- drop(fit_pars$theta)
+                                 
+                                 if(sparse){
+                                   L <- SparseChol::sparse_L(fit_pars)
+                                   L <- L%*%Matrix::Diagonal(x=sqrt(fit_pars$D))
+                                 } else {
+                                   L <- Matrix::Matrix(self$covariance$get_chol_D(thetanew[parInds$cov]))
+                                 }
+                                 if(trace==2)t3 <- Sys.time()
+                                 if(trace==2)cat("\nModel fitting took: ",t3-t2)
+                                 if(verbose)cat("\ntheta:",theta[all_pars])
                                }
                                
-                               theta[parInds$b] <-  drop(fit_pars$beta)
-                               if(self$mean_function$family[[1]] == "gaussian")theta[parInds$sig] <- fit_pars$sigma
-                               theta[parInds$cov] <- drop(fit_pars$theta)
-                               
-                               if(sparse){
-                                 L <- SparseChol::sparse_L(fit_pars)
-                                 L <- L%*%Matrix::Diagonal(x=sqrt(fit_pars$D))
-                               } else {
-                                 L <- Matrix::Matrix(self$covariance$get_chol_D(thetanew[parInds$cov]))
-                               }
-                               if(trace==2)t3 <- Sys.time()
-                               if(trace==2)cat("\nModel fitting took: ",t3-t2)
-                               if(verbose)cat("\ntheta:",theta[all_pars])
-                             }
-                             
-                             
-                             
-                             not_conv <- iter >= max.iter|any(abs(theta-thetanew)>tol)
-                             if(not_conv&!no_warnings)warning(paste0("algorithm not converged. Max. difference between iterations :",max(abs(theta-thetanew)),". Suggest 
+                               not_conv <- iter >= max.iter|any(abs(theta-thetanew)>tol)
+                               if(not_conv&!no_warnings)warning(paste0("algorithm not converged. Max. difference between iterations :",max(abs(theta-thetanew)),". Suggest 
                                                  increasing m, or trying a different algorithm."))
-                             
-                             if(sim.lik.step){
-                               if(verbose)cat("\n\n")
-                               if(verbose)message("Optimising simulated likelihood")
-                               if(sparse){
-                                 newtheta <- do.call(mcml_simlik_sparse,append(self$covariance$get_D_data(),
-                                                                               list(
-                                                                                 eff_range = self$covariance$eff_range,
-                                                                                 Ap=Ap,
-                                                                                 Ai=Ai,
-                                                                                 Z=as.matrix(self$covariance$Z),
-                                                                                 X=as.matrix(self$mean_function$X),
-                                                                                 y=y,
-                                                                                 u=as.matrix(dsamps),
-                                                                                 family=self$mean_function$family[[1]],
-                                                                                 link=self$mean_function$family[[2]],
-                                                                                 start = theta,
-                                                                                 trace=trace,
-                                                                                 mcnr = method=="mcnr"
-                                                                               )))
-                               } else {
-                                 newtheta <- do.call(mcml_simlik,append(self$covariance$get_D_data(),
-                                                                        list(
-                                                                          eff_range = self$covariance$eff_range,
-                                                                          Z=as.matrix(self$covariance$Z),
-                                                                          X=as.matrix(self$mean_function$X),
-                                                                          y=y,
-                                                                          u=as.matrix(dsamps),
-                                                                          family=self$mean_function$family[[1]],
-                                                                          link=self$mean_function$family[[2]],
-                                                                          start = theta,
-                                                                          trace=trace,
-                                                                          mcnr = method=="mcnr"
-                                                                        )))
+                               
+                               if(sim.lik.step){
+                                 if(verbose)cat("\n\n")
+                                 if(verbose)message("Optimising simulated likelihood")
+                                 if(sparse){
+                                   newtheta <- do.call(mcml_simlik_sparse,append(self$covariance$get_D_data(),
+                                                                                 list(
+                                                                                   eff_range = self$covariance$eff_range,
+                                                                                   Ap=Ap,
+                                                                                   Ai=Ai,
+                                                                                   Z=as.matrix(self$covariance$Z),
+                                                                                   X=as.matrix(self$mean_function$X),
+                                                                                   y=y,
+                                                                                   u=as.matrix(dsamps),
+                                                                                   family=self$mean_function$family[[1]],
+                                                                                   link=self$mean_function$family[[2]],
+                                                                                   start = theta,
+                                                                                   trace=trace,
+                                                                                   mcnr = method=="mcnr"
+                                                                                 )))
+                                 } else {
+                                   newtheta <- do.call(mcml_simlik,append(self$covariance$get_D_data(),
+                                                                          list(
+                                                                            eff_range = self$covariance$eff_range,
+                                                                            Z=as.matrix(self$covariance$Z),
+                                                                            X=as.matrix(self$mean_function$X),
+                                                                            y=y,
+                                                                            u=as.matrix(dsamps),
+                                                                            family=self$mean_function$family[[1]],
+                                                                            link=self$mean_function$family[[2]],
+                                                                            start = theta,
+                                                                            trace=trace,
+                                                                            mcnr = method=="mcnr"
+                                                                          )))
+                                 }
+                                 
+                                 theta[all_pars] <- newtheta
                                }
                                
-                               theta[all_pars] <- newtheta
+                               
+                             } else {
+                               # use internal mcmc sampler
+                               if(verbose)message("Using in-built MCMC sampler. We recommend using Stan through cmdstanr if it is available.")
+                               
+                               res <- do.call(mcml_full,append(self$covariance$get_D_data(),
+                                                               list(
+                                                                 eff_range = self$covariance$eff_range,
+                                                                 Z=as.matrix(self$covariance$Z),
+                                                                 X=as.matrix(self$mean_function$X),
+                                                                 y=y,
+                                                                 family=self$mean_function$family[[1]],
+                                                                 link=self$mean_function$family[[2]],
+                                                                 start = theta,
+                                                                 mcnr = method=="mcnr",
+                                                                 m = m,
+                                                                 thin = 1, tol=tol,
+                                                                 warmup = warmup,step_size = 0.01,trace=trace
+                                                               )))
+                               theta[parInds$b] <-  res$beta
+                               if(self$mean_function$family[[1]] == "gaussian")theta[parInds$sig] <- res$sigma
+                               theta[parInds$cov] <- res$theta
+                               not_conv <- !res$converged
+                               
                              }
+                             
+                             
                              
                              if(verbose)cat("\n\nCalculating standard errors...")
                              fnpar <- c(1,1,1,2,2,1,2,2,2,2,2,2,2,1)
