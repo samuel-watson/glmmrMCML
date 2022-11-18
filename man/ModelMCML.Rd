@@ -46,11 +46,12 @@ estimates from the estimated Hessian matrix (\code{se.method = 'lik'}).
 Or use approximate generalised least squares estimates based on the maximum likelihood
 estimates of the covariance parameters (\code{se.method = 'approx'}).
 
+Options for the MCMC sampler are set by changing the values in \code{self$mcmc_options}
+
 There are several options that can be specified to the function using the \code{options} argument.
 The options should be provided as a list, e.g. \code{options = list(method="mcnr")}. The possible options are:
 \itemize{
 \item \code{no_warnings} TRUE (do not report any warnings) or FALSE (report warnings), default to FALSE
-\item \code{warmup_iter} Number of warmup iterations on each iteration for the MCMC sampler, default is 500
 \item \code{fd_tol} The tolerance of the first difference method to estimate the Hessian and Gradient, default
 is 1e-4.
 \item \code{trace} Level of detail to report in output: 0 = no detail (default), 1 & 2 = detailed return from BOBYQA
@@ -67,30 +68,49 @@ df <- nelder(~(cl(10)*t(5)) > ind(10))
 df$int <- 0
 df[df$cl > 5, 'int'] <- 1
 des <- ModelMCML$new(
-  covariance = list(
-    data = df,
-    formula = ~ (1|gr(cl)*ar1(t)),
-    parameters = c(0.25,0.8)),
-  mean.function = list(
-    formula = ~ factor(t) + int - 1,
-    data=df,
-    parameters = c(rep(0,5),0.6),
-    family = binomial())
+  covariance = list( formula = ~ (1|gr(cl)*ar1(t))),
+  mean.function = list(formula = ~ factor(t) + int - 1),
+  data = df,
+  family = stats::binomial()
 )
-ysim <- des$sim_data()
-# fits the models using MCEM with 250 samples
-fit1 <- des$MCML(y = ysim, m=250)
-#fits the models using MCNR and report detailed output
-fit2 <- des$MCML(y = ysim,
-  method="mcnr",
-  options = list(trace = 2))
+ysim <- des$sim_data() # simulate some data from the model
+fit1 <- des$MCML(y = ysim)
+#fits the models using MCEM and report detailed output
+fit2 <- des$MCML(y = ysim,method="mcem")
  #adds a simulated likelihood step after the MCEM algorithm
-fit4 <- des$MCML(y = ysim,
-  sim.lik.step = TRUE)  
+fit4 <- des$MCML(y = ysim, sim.lik.step = TRUE)  
+
+# to set better starting values we can use the update_parameters function 
+des$update_parameters(mean = rep(0.5,6), cov = c(0.3,0.7))
 }
+}
+\seealso{
+\link[glmmrBase]{Model}, \link[glmmrBase]{Covariance}, \link[glmmrBase]{MeanFunction}
 }
 \section{Super class}{
 \code{\link[glmmrBase:Model]{glmmrBase::Model}} -> \code{ModelMCML}
+}
+\section{Public fields}{
+\if{html}{\out{<div class="r6-fields">}}
+\describe{
+\item{\code{mcmc_options}}{There are five options for MCMC sampling that are specified in this list:
+\itemize{
+\item \code{warmup} The number of warmup iterations. Note that if using the internal HMC
+sampler, this only applies to the first iteration of the MCML algorithm, as the
+values from the previous iteration are carried over.
+\item \code{samps} The number of MCMC samples drawn in the MCML algorithm. For
+smaller tolerance values larger numbers of samples are required. For the internal
+HMC sampler, larger numbers of samples are generally required than if using Stan since
+the samples generally exhibit higher autocorrealtion, especially for more complex
+covariance structures.
+\item \code{lambda} (Only relevant for the internal HMC sampler) Value of the trajectory length of the leapfrog integrator in Hamiltonian Monte Carlo
+(equal to number of steps times the step length). Larger values result in lower correlation in samples, but
+require larger numbers of steps and so is slower.
+\item \code{refresh} How frequently to print to console MCMC progress if displaying verbose output.
+\item \code{maxsteps} (Only relevant for the internal HMC sampler) Integer. The maximum number of steps of the leapfrom integrator
+}}
+}
+\if{html}{\out{</div>}}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -108,6 +128,7 @@ fit4 <- des$MCML(y = ysim,
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="initialize"><a href='../../glmmrBase/html/Model.html#method-Model-initialize'><code>glmmrBase::Model$initialize()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n"><a href='../../glmmrBase/html/Model.html#method-Model-n'><code>glmmrBase::Model$n()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="n_cluster"><a href='../../glmmrBase/html/Model.html#method-Model-n_cluster'><code>glmmrBase::Model$n_cluster()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="power"><a href='../../glmmrBase/html/Model.html#method-Model-power'><code>glmmrBase::Model$power()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="print"><a href='../../glmmrBase/html/Model.html#method-Model-print'><code>glmmrBase::Model$print()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="sim_data"><a href='../../glmmrBase/html/Model.html#method-Model-sim_data'><code>glmmrBase::Model$sim_data()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_cols"><a href='../../glmmrBase/html/Model.html#method-Model-subset_cols'><code>glmmrBase::Model$subset_cols()</code></a></span></li>
@@ -124,14 +145,14 @@ Markov Chain Monte Carlo Maximum Likelihood  model fitting
 \if{html}{\out{<div class="r">}}\preformatted{ModelMCML$MCML(
   y,
   start,
-  se.method = "lik",
-  method = "mcem",
+  se.method = "approx",
+  method = "mcnr",
   sim.lik.step = FALSE,
   verbose = TRUE,
   tol = 0.01,
-  m = 100,
   max.iter = 30,
   sparse = FALSE,
+  usestan = TRUE,
   options = list()
 )}\if{html}{\out{</div>}}
 }
@@ -156,11 +177,14 @@ not do this step), defaults to FALSE.}
 \item{\code{tol}}{Numeric value, tolerance of the MCML algorithm, the maximum difference in parameter estimates
 between iterations at which to stop the algorithm.}
 
-\item{\code{m}}{Integer. The number of MCMC draws of the random effects on each iteration.}
-
 \item{\code{max.iter}}{Integer. The maximum number of iterations of the MCML algorithm.}
 
 \item{\code{sparse}}{Logical indicating whether to use sparse matrix methods}
+
+\item{\code{usestan}}{Logical whether to use Stan (through the package \code{cmdstanr}) for the MCMC sampling. If FALSE then
+the internal Hamiltonian Monte Carlo sampler will be used instead. We recommend Stan over the internal sampler as
+it generally produces a larger number of effective samplers per unit time, especially for more complex
+covariance functions.}
 
 \item{\code{options}}{An optional list providing options to the algorithm, see Details.}
 }
@@ -176,26 +200,20 @@ df <- nelder(~(cl(10)*t(5)) > ind(10))
 df$int <- 0
 df[df$cl > 5, 'int'] <- 1
 des <- ModelMCML$new(
-  covariance = list(
-    data = df,
-    formula = ~ (1|gr(cl)*ar1(t)),
-    parameters = c(0.25,0.8)),
-  mean.function = list(
-    formula = ~ factor(t) + int - 1,
-    data=df,
-    parameters = c(rep(0,5),0.6),
-    family = binomial())
+  covariance = list( formula = ~ (1|gr(cl)*ar1(t))),
+  mean.function = list(formula = ~ factor(t) + int - 1),
+  data = df,
+  family = stats::binomial()
 )
-ysim <- des$sim_data()
-# fits the models using MCEM with 250 samples
-fit1 <- des$MCML(y = ysim, m=250)
-#fits the models using MCNR and report detailed output
-fit2 <- des$MCML(y = ysim,
-  method="mcnr",
-  options = list(trace = 2))
+ysim <- des$sim_data() # simulate some data from the model
+fit1 <- des$MCML(y = ysim)
+#fits the models using MCEM and report detailed output
+fit2 <- des$MCML(y = ysim,method="mcem")
  #adds a simulated likelihood step after the MCEM algorithm
-fit4 <- des$MCML(y = ysim,
-  sim.lik.step = TRUE)  
+fit4 <- des$MCML(y = ysim, sim.lik.step = TRUE)  
+
+# to set better starting values we can use the update_parameters function 
+des$update_parameters(mean = rep(0.5,6), cov = c(0.3,0.7))
 }
 }
 \if{html}{\out{</div>}}

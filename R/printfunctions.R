@@ -14,7 +14,7 @@
 #' Parameters `b` are the mean function beta parameters, parameters `cov` are the
 #' covariance function parameters in the same order as `$covariance$parameters`, and
 #' parameters `d` are the estimated random effects.
-#' @return TBC
+#' @return No return value, called for side effects.
 #' @method print mcml
 #' @export
 print.mcml <- function(x, ...){
@@ -75,7 +75,7 @@ print.mcml <- function(x, ...){
 #' Parameters `b` are the mean function beta parameters, parameters `cov` are the
 #' covariance function parameters in the same order as `$covariance$parameters`, and
 #' parameters `d` are the estimated random effects.
-#' @return TBC
+#' @return A list with random effect names and a data frame with random effect mean and credible intervals
 #' @method summary mcml
 #' @export
 summary.mcml <- function(object,...){

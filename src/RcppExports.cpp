@@ -2,7 +2,7 @@
 // Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #include "../inst/include/glmmrMCML.h"
-#include <RcppArmadillo.h>
+#include <RcppEigen.h>
 #include <Rcpp.h>
 
 using namespace Rcpp;
@@ -12,140 +12,243 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// mcml_optim
-Rcpp::List mcml_optim(Rcpp::List D_data, int Q, const arma::mat& Z, const arma::mat& X, const arma::vec& y, const arma::mat& u, std::string family, std::string link, arma::vec start, int trace, bool mcnr);
-RcppExport SEXP _glmmrMCML_mcml_optim(SEXP D_dataSEXP, SEXP QSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP traceSEXP, SEXP mcnrSEXP) {
+// mcml_full
+Rcpp::List mcml_full(const Eigen::ArrayXXi& cov, const Eigen::ArrayXd& data, const Eigen::ArrayXd& eff_range, const Eigen::MatrixXd& Z, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, std::string family, std::string link, Eigen::ArrayXd start, bool mcnr, int m, int maxiter, int warmup, double tol, bool verbose, double lambda, int trace, int refresh, int maxsteps);
+RcppExport SEXP _glmmrMCML_mcml_full(SEXP covSEXP, SEXP dataSEXP, SEXP eff_rangeSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP mcnrSEXP, SEXP mSEXP, SEXP maxiterSEXP, SEXP warmupSEXP, SEXP tolSEXP, SEXP verboseSEXP, SEXP lambdaSEXP, SEXP traceSEXP, SEXP refreshSEXP, SEXP maxstepsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type D_data(D_dataSEXP);
-    Rcpp::traits::input_parameter< int >::type Q(QSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type Z(ZSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type u(uSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXXi& >::type cov(covSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type eff_range(eff_rangeSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type y(ySEXP);
     Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
     Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type start(startSEXP);
+    Rcpp::traits::input_parameter< Eigen::ArrayXd >::type start(startSEXP);
+    Rcpp::traits::input_parameter< bool >::type mcnr(mcnrSEXP);
+    Rcpp::traits::input_parameter< int >::type m(mSEXP);
+    Rcpp::traits::input_parameter< int >::type maxiter(maxiterSEXP);
+    Rcpp::traits::input_parameter< int >::type warmup(warmupSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
+    Rcpp::traits::input_parameter< int >::type refresh(refreshSEXP);
+    Rcpp::traits::input_parameter< int >::type maxsteps(maxstepsSEXP);
+    rcpp_result_gen = Rcpp::wrap(mcml_full(cov, data, eff_range, Z, X, y, family, link, start, mcnr, m, maxiter, warmup, tol, verbose, lambda, trace, refresh, maxsteps));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mcmc_sample
+Eigen::ArrayXXd mcmc_sample(const Eigen::MatrixXd& Z, const Eigen::MatrixXd& L, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, const Eigen::VectorXd& beta, std::string family, std::string link, int warmup, int nsamp, double lambda, double var_par, int trace, int refresh, int maxsteps);
+RcppExport SEXP _glmmrMCML_mcmc_sample(SEXP ZSEXP, SEXP LSEXP, SEXP XSEXP, SEXP ySEXP, SEXP betaSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP warmupSEXP, SEXP nsampSEXP, SEXP lambdaSEXP, SEXP var_parSEXP, SEXP traceSEXP, SEXP refreshSEXP, SEXP maxstepsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type L(LSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
+    Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
+    Rcpp::traits::input_parameter< int >::type warmup(warmupSEXP);
+    Rcpp::traits::input_parameter< int >::type nsamp(nsampSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< double >::type var_par(var_parSEXP);
+    Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
+    Rcpp::traits::input_parameter< int >::type refresh(refreshSEXP);
+    Rcpp::traits::input_parameter< int >::type maxsteps(maxstepsSEXP);
+    rcpp_result_gen = Rcpp::wrap(mcmc_sample(Z, L, X, y, beta, family, link, warmup, nsamp, lambda, var_par, trace, refresh, maxsteps));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mcml_optim
+Rcpp::List mcml_optim(const Eigen::ArrayXXi& cov, const Eigen::ArrayXd& data, const Eigen::ArrayXd& eff_range, const Eigen::MatrixXd& Z, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, Eigen::MatrixXd u, std::string family, std::string link, Eigen::ArrayXd start, int trace, bool mcnr);
+RcppExport SEXP _glmmrMCML_mcml_optim(SEXP covSEXP, SEXP dataSEXP, SEXP eff_rangeSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP traceSEXP, SEXP mcnrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::ArrayXXi& >::type cov(covSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type eff_range(eff_rangeSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type u(uSEXP);
+    Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
+    Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
+    Rcpp::traits::input_parameter< Eigen::ArrayXd >::type start(startSEXP);
     Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< bool >::type mcnr(mcnrSEXP);
-    rcpp_result_gen = Rcpp::wrap(mcml_optim(D_data, Q, Z, X, y, u, family, link, start, trace, mcnr));
+    rcpp_result_gen = Rcpp::wrap(mcml_optim(cov, data, eff_range, Z, X, y, u, family, link, start, trace, mcnr));
     return rcpp_result_gen;
 END_RCPP
 }
 // mcml_simlik
-Rcpp::List mcml_simlik(Rcpp::List D_data, int Q, const arma::mat& Z, const arma::mat& X, const arma::vec& y, const arma::mat& u, std::string family, std::string link, arma::vec start, int trace);
-RcppExport SEXP _glmmrMCML_mcml_simlik(SEXP D_dataSEXP, SEXP QSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP traceSEXP) {
+Rcpp::List mcml_simlik(const Eigen::ArrayXXi& cov, const Eigen::ArrayXd& data, const Eigen::ArrayXd& eff_range, const Eigen::MatrixXd& Z, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, Eigen::MatrixXd u, std::string family, std::string link, Eigen::ArrayXd start, int trace);
+RcppExport SEXP _glmmrMCML_mcml_simlik(SEXP covSEXP, SEXP dataSEXP, SEXP eff_rangeSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP traceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type D_data(D_dataSEXP);
-    Rcpp::traits::input_parameter< int >::type Q(QSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type Z(ZSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type u(uSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXXi& >::type cov(covSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type eff_range(eff_rangeSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type u(uSEXP);
     Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
     Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type start(startSEXP);
+    Rcpp::traits::input_parameter< Eigen::ArrayXd >::type start(startSEXP);
     Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
-    rcpp_result_gen = Rcpp::wrap(mcml_simlik(D_data, Q, Z, X, y, u, family, link, start, trace));
+    rcpp_result_gen = Rcpp::wrap(mcml_simlik(cov, data, eff_range, Z, X, y, u, family, link, start, trace));
     return rcpp_result_gen;
 END_RCPP
 }
 // mcml_optim_sparse
-Rcpp::List mcml_optim_sparse(Rcpp::List D_data, int Q, const arma::uvec& Ap, const arma::uvec& Ai, const arma::mat& Z, const arma::mat& X, const arma::vec& y, const arma::mat& u, std::string family, std::string link, arma::vec start, int trace, bool mcnr);
-RcppExport SEXP _glmmrMCML_mcml_optim_sparse(SEXP D_dataSEXP, SEXP QSEXP, SEXP ApSEXP, SEXP AiSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP traceSEXP, SEXP mcnrSEXP) {
+Rcpp::List mcml_optim_sparse(const Eigen::ArrayXXi& cov, const Eigen::ArrayXd& data, const Eigen::ArrayXd& eff_range, const Eigen::ArrayXi& Ap, const Eigen::ArrayXi& Ai, const Eigen::MatrixXd& Z, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, Eigen::MatrixXd u, std::string family, std::string link, Eigen::ArrayXd start, int trace, bool mcnr);
+RcppExport SEXP _glmmrMCML_mcml_optim_sparse(SEXP covSEXP, SEXP dataSEXP, SEXP eff_rangeSEXP, SEXP ApSEXP, SEXP AiSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP traceSEXP, SEXP mcnrSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type D_data(D_dataSEXP);
-    Rcpp::traits::input_parameter< int >::type Q(QSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type Ap(ApSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type Ai(AiSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type Z(ZSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type u(uSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXXi& >::type cov(covSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type eff_range(eff_rangeSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXi& >::type Ap(ApSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXi& >::type Ai(AiSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type u(uSEXP);
     Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
     Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type start(startSEXP);
+    Rcpp::traits::input_parameter< Eigen::ArrayXd >::type start(startSEXP);
     Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< bool >::type mcnr(mcnrSEXP);
-    rcpp_result_gen = Rcpp::wrap(mcml_optim_sparse(D_data, Q, Ap, Ai, Z, X, y, u, family, link, start, trace, mcnr));
+    rcpp_result_gen = Rcpp::wrap(mcml_optim_sparse(cov, data, eff_range, Ap, Ai, Z, X, y, u, family, link, start, trace, mcnr));
     return rcpp_result_gen;
 END_RCPP
 }
 // mcml_simlik_sparse
-Rcpp::List mcml_simlik_sparse(Rcpp::List D_data, int Q, const arma::uvec& Ap, const arma::uvec& Ai, const arma::mat& Z, const arma::mat& X, const arma::vec& y, const arma::mat& u, std::string family, std::string link, arma::vec start, int trace);
-RcppExport SEXP _glmmrMCML_mcml_simlik_sparse(SEXP D_dataSEXP, SEXP QSEXP, SEXP ApSEXP, SEXP AiSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP traceSEXP) {
+Rcpp::List mcml_simlik_sparse(const Eigen::ArrayXXi& cov, const Eigen::ArrayXd& data, const Eigen::ArrayXd& eff_range, const Eigen::ArrayXi& Ap, const Eigen::ArrayXi& Ai, const Eigen::MatrixXd& Z, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, Eigen::MatrixXd u, std::string family, std::string link, Eigen::ArrayXd start, int trace);
+RcppExport SEXP _glmmrMCML_mcml_simlik_sparse(SEXP covSEXP, SEXP dataSEXP, SEXP eff_rangeSEXP, SEXP ApSEXP, SEXP AiSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP traceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type D_data(D_dataSEXP);
-    Rcpp::traits::input_parameter< int >::type Q(QSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type Ap(ApSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type Ai(AiSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type Z(ZSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type u(uSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXXi& >::type cov(covSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type eff_range(eff_rangeSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXi& >::type Ap(ApSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXi& >::type Ai(AiSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type u(uSEXP);
     Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
     Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type start(startSEXP);
+    Rcpp::traits::input_parameter< Eigen::ArrayXd >::type start(startSEXP);
     Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
-    rcpp_result_gen = Rcpp::wrap(mcml_simlik_sparse(D_data, Q, Ap, Ai, Z, X, y, u, family, link, start, trace));
+    rcpp_result_gen = Rcpp::wrap(mcml_simlik_sparse(cov, data, eff_range, Ap, Ai, Z, X, y, u, family, link, start, trace));
     return rcpp_result_gen;
 END_RCPP
 }
 // mcml_hess
-arma::mat mcml_hess(Rcpp::List D_data, int Q, const arma::mat& Z, const arma::mat& X, const arma::vec& y, const arma::mat& u, std::string family, std::string link, arma::vec start, double tol, int trace);
-RcppExport SEXP _glmmrMCML_mcml_hess(SEXP D_dataSEXP, SEXP QSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP tolSEXP, SEXP traceSEXP) {
+Eigen::MatrixXd mcml_hess(const Eigen::ArrayXXi& cov, const Eigen::ArrayXd& data, const Eigen::ArrayXd& eff_range, const Eigen::MatrixXd& Z, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, Eigen::MatrixXd u, std::string family, std::string link, Eigen::ArrayXd start, double tol, int trace);
+RcppExport SEXP _glmmrMCML_mcml_hess(SEXP covSEXP, SEXP dataSEXP, SEXP eff_rangeSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP tolSEXP, SEXP traceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type D_data(D_dataSEXP);
-    Rcpp::traits::input_parameter< int >::type Q(QSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type Z(ZSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type u(uSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXXi& >::type cov(covSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type eff_range(eff_rangeSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type u(uSEXP);
     Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
     Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type start(startSEXP);
+    Rcpp::traits::input_parameter< Eigen::ArrayXd >::type start(startSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
-    rcpp_result_gen = Rcpp::wrap(mcml_hess(D_data, Q, Z, X, y, u, family, link, start, tol, trace));
+    rcpp_result_gen = Rcpp::wrap(mcml_hess(cov, data, eff_range, Z, X, y, u, family, link, start, tol, trace));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mcml_hess_sparse
+Eigen::MatrixXd mcml_hess_sparse(const Eigen::ArrayXXi& cov, const Eigen::ArrayXd& data, const Eigen::ArrayXd& eff_range, const Eigen::ArrayXi& Ap, const Eigen::ArrayXi& Ai, const Eigen::MatrixXd& Z, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, Eigen::MatrixXd u, std::string family, std::string link, Eigen::ArrayXd start, double tol, int trace);
+RcppExport SEXP _glmmrMCML_mcml_hess_sparse(SEXP covSEXP, SEXP dataSEXP, SEXP eff_rangeSEXP, SEXP ApSEXP, SEXP AiSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP tolSEXP, SEXP traceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::ArrayXXi& >::type cov(covSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type eff_range(eff_rangeSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXi& >::type Ap(ApSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXi& >::type Ai(AiSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type u(uSEXP);
+    Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
+    Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
+    Rcpp::traits::input_parameter< Eigen::ArrayXd >::type start(startSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
+    rcpp_result_gen = Rcpp::wrap(mcml_hess_sparse(cov, data, eff_range, Ap, Ai, Z, X, y, u, family, link, start, tol, trace));
     return rcpp_result_gen;
 END_RCPP
 }
 // aic_mcml
-double aic_mcml(const arma::mat& Z, const arma::mat& X, const arma::vec& y, const arma::mat& u, std::string family, std::string link, Rcpp::List D_data, const arma::vec& beta_par, const arma::vec& cov_par);
-RcppExport SEXP _glmmrMCML_aic_mcml(SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP D_dataSEXP, SEXP beta_parSEXP, SEXP cov_parSEXP) {
+double aic_mcml(const Eigen::ArrayXXi& cov, const Eigen::ArrayXd& data, const Eigen::ArrayXd& eff_range, const Eigen::MatrixXd& Z, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, Eigen::MatrixXd u, std::string family, std::string link, const Eigen::VectorXd& beta_par, const Eigen::VectorXd& cov_par);
+RcppExport SEXP _glmmrMCML_aic_mcml(SEXP covSEXP, SEXP dataSEXP, SEXP eff_rangeSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP uSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP beta_parSEXP, SEXP cov_parSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type Z(ZSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type u(uSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXXi& >::type cov(covSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type eff_range(eff_rangeSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type u(uSEXP);
     Rcpp::traits::input_parameter< std::string >::type family(familySEXP);
     Rcpp::traits::input_parameter< std::string >::type link(linkSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type D_data(D_dataSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type beta_par(beta_parSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type cov_par(cov_parSEXP);
-    rcpp_result_gen = Rcpp::wrap(aic_mcml(Z, X, y, u, family, link, D_data, beta_par, cov_par));
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type beta_par(beta_parSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type cov_par(cov_parSEXP);
+    rcpp_result_gen = Rcpp::wrap(aic_mcml(cov, data, eff_range, Z, X, y, u, family, link, beta_par, cov_par));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mvn_ll
+double mvn_ll(const Eigen::ArrayXXi& cov, const Eigen::ArrayXd& data, const Eigen::ArrayXd& eff_range, const Eigen::ArrayXd& gamma, const Eigen::MatrixXd& u);
+RcppExport SEXP _glmmrMCML_mvn_ll(SEXP covSEXP, SEXP dataSEXP, SEXP eff_rangeSEXP, SEXP gammaSEXP, SEXP uSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::ArrayXXi& >::type cov(covSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type eff_range(eff_rangeSEXP);
+    Rcpp::traits::input_parameter< const Eigen::ArrayXd& >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type u(uSEXP);
+    rcpp_result_gen = Rcpp::wrap(mvn_ll(cov, data, eff_range, gamma, u));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_glmmrMCML_mcml_optim", (DL_FUNC) &_glmmrMCML_mcml_optim, 11},
-    {"_glmmrMCML_mcml_simlik", (DL_FUNC) &_glmmrMCML_mcml_simlik, 10},
-    {"_glmmrMCML_mcml_optim_sparse", (DL_FUNC) &_glmmrMCML_mcml_optim_sparse, 13},
-    {"_glmmrMCML_mcml_simlik_sparse", (DL_FUNC) &_glmmrMCML_mcml_simlik_sparse, 12},
-    {"_glmmrMCML_mcml_hess", (DL_FUNC) &_glmmrMCML_mcml_hess, 11},
-    {"_glmmrMCML_aic_mcml", (DL_FUNC) &_glmmrMCML_aic_mcml, 9},
+    {"_glmmrMCML_mcml_full", (DL_FUNC) &_glmmrMCML_mcml_full, 19},
+    {"_glmmrMCML_mcmc_sample", (DL_FUNC) &_glmmrMCML_mcmc_sample, 14},
+    {"_glmmrMCML_mcml_optim", (DL_FUNC) &_glmmrMCML_mcml_optim, 12},
+    {"_glmmrMCML_mcml_simlik", (DL_FUNC) &_glmmrMCML_mcml_simlik, 11},
+    {"_glmmrMCML_mcml_optim_sparse", (DL_FUNC) &_glmmrMCML_mcml_optim_sparse, 14},
+    {"_glmmrMCML_mcml_simlik_sparse", (DL_FUNC) &_glmmrMCML_mcml_simlik_sparse, 13},
+    {"_glmmrMCML_mcml_hess", (DL_FUNC) &_glmmrMCML_mcml_hess, 12},
+    {"_glmmrMCML_mcml_hess_sparse", (DL_FUNC) &_glmmrMCML_mcml_hess_sparse, 14},
+    {"_glmmrMCML_aic_mcml", (DL_FUNC) &_glmmrMCML_aic_mcml, 11},
+    {"_glmmrMCML_mvn_ll", (DL_FUNC) &_glmmrMCML_mvn_ll, 5},
     {NULL, NULL, 0}
 };
 
