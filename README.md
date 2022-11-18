@@ -1,4 +1,5 @@
-# glmmrMCML
+# glmmrMCML v0.1.3
+[To be updated for v0.2.1]
 R package for Markov Chain Monte Carlo Maximum Likelihood (MCML) estimation of generalised linear mixed models (GLMM), built on the [glmmrBase](https://github.com/samuel-watson/glmmrBase) package.
 
 ## Model specification
