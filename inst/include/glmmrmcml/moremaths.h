@@ -24,21 +24,20 @@ namespace glmmr {
   inline double log_likelihood(double y,
                                double mu,
                                double var_par,
-                               std::string family,
-                               std::string link) {
+                               int flink) {
     double logl;
     
-    const static std::unordered_map<std::string,int> string_to_case{
-      {"poissonlog",1},
-      {"poissonidentity",2},
-      {"binomiallogit",3},
-      {"binomiallog",4},
-      {"binomialidentity",5},
-      {"binomialprobit",6},
-      {"gaussianidentity",7},
-      {"gaussianlog",8}
-    };
-    switch (string_to_case.at(family+link)){
+    // const static std::unordered_map<std::string,int> string_to_case{
+    //   {"poissonlog",1},
+    //   {"poissonidentity",2},
+    //   {"binomiallogit",3},
+    //   {"binomiallog",4},
+    //   {"binomialidentity",5},
+    //   {"binomialprobit",6},
+    //   {"gaussianidentity",7},
+    //   {"gaussianlog",8}
+    // };string_to_case.at(family+link)
+    switch (flink){
     case 1:
       {
       

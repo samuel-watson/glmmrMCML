@@ -67,34 +67,6 @@ Rcpp::List mcml_optim(const Eigen::ArrayXXi &cov,
   return out;
 }
 
-// [[Rcpp::export]]
-void mcml_doptim(const Eigen::ArrayXXi &cov,
-                      const Eigen::ArrayXd &data,
-                      const Eigen::ArrayXd &eff_range,
-                      const Eigen::MatrixXd &Z, 
-                      const Eigen::MatrixXd &X,
-                      const Eigen::VectorXd &y, 
-                      Eigen::MatrixXd u,
-                      std::string family, 
-                      std::string link,
-                      Eigen::ArrayXd start,
-                      int trace,
-                      bool mcnr = false){
-  
-  glmmr::DData dat(cov,data,eff_range);
-  Eigen::ArrayXd thetapars = start.segment(X.cols(),dat.n_cov_pars());
-  Eigen::VectorXd beta = start.segment(0,X.cols());
-  glmmr::mcmlModel model(Z,nullptr,X,y,&u,beta,1,family,link);
-  glmmr::MCMLDmatrix dmat(&dat, thetapars);
-  glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,&model, start,trace);
-  
-  mc.d_optim();
-  
-  Eigen::VectorXd theta = mc.get_theta();
-  
-  Rcpp::Rcout << "\ntheta: " << theta.transpose();
-}
-
 //' Simulated likelihood optimisation step for MCML
 //' 
 //' @details
@@ -401,15 +373,14 @@ double aic_mcml(const Eigen::ArrayXXi &cov,
   Eigen::VectorXd beta;
   
   if(family=="gaussian"){
-    var_par = beta_par(P-1);
+    var_par = beta_par(P);
     //xb = X*beta_par.segment(0,P-1);
-    beta = beta_par.segment(0,P-1);
+    beta = beta_par.segment(0,P);
   } else {
     var_par = 0;
     // xb = X*beta_par;
     beta = beta_par;
   }
-  
   glmmr::DData dat(cov,data,eff_range);
   glmmr::MCMLDmatrix dmat(&dat, cov_par);
   glmmr::mcmlModel model(Z,nullptr,X,y,&u,beta,var_par,family,link);
@@ -425,7 +396,6 @@ double aic_mcml(const Eigen::ArrayXXi &cov,
 //' 
 //' Calculates the log likelihood of the multivariate normal distribution using `glmmr` covariance representation
 //' 
-
 //' @param cov An integer matrix with columns of block identifier, dimension of block, function definition, number of variables
 //' in the argument to the funciton, and index of the parameters, respectively. Rows are specific functions of each block.
 //' @param data Vector of data. Created by flattening the matrices in column-major order of the data used in each block.

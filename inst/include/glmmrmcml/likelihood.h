@@ -67,8 +67,9 @@ public:
                bool importance = false,
                bool fix_var = false,
                double fix_var_par = 0) : 
-  D_(D), M_(M), importance_(importance), cov_par_fix_(cov_par_fix), 
-  fix_var_(fix_var), fix_var_par_(fix_var_par) {}
+  D_(D), M_(M), importance_(importance), 
+  fix_var_(fix_var), fix_var_par_(fix_var_par),
+  cov_par_fix_(cov_par_fix) {}
   
   
   double operator()(const std::vector<double> &par) override{

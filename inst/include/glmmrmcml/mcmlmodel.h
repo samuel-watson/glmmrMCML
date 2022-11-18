@@ -27,6 +27,7 @@ public:
   int Q_;
   int P_;
   int niter_;
+  int flink;
   
   mcmlModel(
     const Eigen::MatrixXd &Z, 
@@ -38,7 +39,7 @@ public:
     double var_par,
     std::string family, 
     std::string link
-  ) : X_(X), xb_(X.rows()), Z_(Z), ZL_(X.rows(),Z.cols()), L_(L),  
+  ) : X_(X),  Z_(Z), xb_(X.rows()), ZL_(X.rows(),Z.cols()), L_(L),  
       y_(y), u_(u), var_par_(var_par), family_(family), link_(link) {
     xb_ = X* beta;
     if(L != nullptr)ZL_ = Z * (*L);  
@@ -46,6 +47,18 @@ public:
     Q_ = Z.cols();
     P_ = X.cols();
     niter_ = u->cols();
+    const static std::unordered_map<std::string,int> string_to_case{
+      {"poissonlog",1},
+      {"poissonidentity",2},
+      {"binomiallogit",3},
+      {"binomiallog",4},
+      {"binomialidentity",5},
+      {"binomialprobit",6},
+      {"gaussianidentity",7},
+      {"gaussianlog",8}
+    };
+    
+    flink = string_to_case.at(family_+link_);
   }
   
   void update_beta(const Eigen::VectorXd &beta){
@@ -76,12 +89,12 @@ public:
     
 #pragma omp parallel for
     for(int i = 0; i < n_; i++){
-      ll(i) = glmmr::maths::log_likelihood(y_(i),mu(i),var_par_,family_,link_);
+      ll(i) = glmmr::maths::log_likelihood(y_(i),mu(i),var_par_,flink);
     }
     
 #pragma omp parallel for
     for(int i = 0; i < v.size(); i++){
-      lp(i) = glmmr::maths::log_likelihood(v(i),0,1,"gaussian","identity");
+      lp(i) = glmmr::maths::log_likelihood(v(i),0,1,7);
     }
     
     //Rcpp::Rcout << "\n ll: " << ll.sum() << " lp: " << lp.sum();
@@ -92,31 +105,20 @@ public:
   // update this for all the gradient in glmmr maths
   Eigen::VectorXd log_grad(const Eigen::VectorXd &v){
     
-    Eigen::VectorXd grad = Eigen::VectorXd::Zero(v.size());
+    Eigen::VectorXd grad = -1.0*v; //Eigen::VectorXd::Zero(v.size());
     Eigen::VectorXd mu = xb_ + ZL_*v;
     
-    const static std::unordered_map<std::string,int> string_to_case{
-      {"poissonlog",1},
-      {"poissonidentity",2},
-      {"binomiallogit",3},
-      {"binomiallog",4},
-      {"binomialidentity",5},
-      {"binomialprobit",6},
-      {"gaussianidentity",7},
-      {"gaussianlog",8}
-    };
-    
-    switch (string_to_case.at(family_+link_)){
+    switch (flink){
     case 1:
     {
       for(int i = 0; i < mu.size(); i++)mu(i) = exp(mu(i));
-      grad = ZL_.transpose()*(y_-mu) - v;
+      grad.noalias() += ZL_.transpose()*(y_-mu);
       break;
     }
     case 2:
     {
       for(int i = 0; i < mu.size(); i++)mu(i) = y_(i)/mu(i) - 1;
-      grad =  ZL_.transpose()*mu - v;
+      grad.noalias() +=  ZL_.transpose()*mu;
       break;
     }
     case 3:
@@ -128,7 +130,7 @@ public:
           mu(i) = exp(mu(i))/(1+exp(mu(i)));
         }
       }
-      grad =  ZL_.transpose()*mu - v;
+      grad.noalias() +=  ZL_.transpose()*mu;
       break;
     case 4:
       for(int i = 0; i < mu.size(); i++){
@@ -138,7 +140,7 @@ public:
           mu(i) = exp(mu(i))/(1-exp(mu(i)));
         }
       }
-      grad =  ZL_.transpose()*mu - v;
+      grad.noalias() +=  ZL_.transpose()*mu;
       break;
     case 5: // need to update
       break;
@@ -146,8 +148,7 @@ public:
       break;
     case 7:
       {
-        Eigen::VectorXd resid = y_ - mu;
-        grad = (-1/(var_par_*var_par_))*(ZL_.transpose()*resid) - v;
+        grad.noalias() += (-1/(var_par_*var_par_))*(ZL_.transpose()*(y_ - mu));
         break;
       }
     case 8: //need to update
@@ -166,7 +167,7 @@ public:
 #pragma omp parallel for
     for(int j=0; j<niter_ ; j++){
       for(int i = 0; i<n_; i++){
-        ll(j) += glmmr::maths::log_likelihood(y_(i),xb_(i) + zd.col(j)(i),var_par_,family_,link_);
+        ll(j) += glmmr::maths::log_likelihood(y_(i),xb_(i) + zd.col(j)(i),var_par_,flink);
       }
     } 
     return ll.mean();

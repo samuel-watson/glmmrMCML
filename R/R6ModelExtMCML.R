@@ -15,6 +15,7 @@
 #' provides Markov Chain Monte Carlo Maximum Likelihood model fitting. See \href{https://github.com/samuel-watson/glmmrBase/blob/master/README.md}{glmmrBase} for a 
 #' detailed guide on model specification.
 #' 
+#' @return No return value, called for side effects.
 #' @importFrom Matrix Matrix
 #' @export 
 ModelMCML <- R6::R6Class("ModelMCML",
@@ -46,10 +47,11 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            #'Or use approximate generalised least squares estimates based on the maximum likelihood 
                            #'estimates of the covariance parameters (`se.method = 'approx'`).
                            #'
+                           #' Options for the MCMC sampler are set by changing the values in `self$mcmc_options`
+                           #'
                            #'There are several options that can be specified to the function using the `options` argument. 
                            #'The options should be provided as a list, e.g. `options = list(method="mcnr")`. The possible options are:
                            #'* `no_warnings` TRUE (do not report any warnings) or FALSE (report warnings), default to FALSE
-                           #' * `warmup_iter` Number of warmup iterations on each iteration for the MCMC sampler, default is 500
                            #' * `fd_tol` The tolerance of the first difference method to estimate the Hessian and Gradient, default 
                            #' is 1e-4.
                            #' * `trace` Level of detail to report in output: 0 = no detail (default), 1 & 2 = detailed return from BOBYQA
@@ -64,37 +66,35 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            #'@param verbose Logical indicating whether to provide detailed output, defaults to TRUE.
                            #'@param tol Numeric value, tolerance of the MCML algorithm, the maximum difference in parameter estimates 
                            #'between iterations at which to stop the algorithm.
-                           #'@param m Integer. The number of MCMC draws of the random effects on each iteration.
                            #'@param max.iter Integer. The maximum number of iterations of the MCML algorithm.
                            #'@param sparse Logical indicating whether to use sparse matrix methods
+                           #'@param usestan Logical whether to use Stan (through the package `cmdstanr`) for the MCMC sampling. If FALSE then 
+                           #'the internal Hamiltonian Monte Carlo sampler will be used instead. We recommend Stan over the internal sampler as 
+                           #'it generally produces a larger number of effective samplers per unit time, especially for more complex 
+                           #'covariance functions.
                            #'@param options An optional list providing options to the algorithm, see Details.
                            #'@return A `mcml` object
+                           #' @seealso \link[glmmrBase]{Model}, \link[glmmrBase]{Covariance}, \link[glmmrBase]{MeanFunction} 
                            #'@examples
                            #'\dontrun{
                            #'df <- nelder(~(cl(10)*t(5)) > ind(10))
                            #' df$int <- 0
                            #' df[df$cl > 5, 'int'] <- 1
                            #' des <- ModelMCML$new(
-                           #'   covariance = list(
-                           #'     data = df,
-                           #'     formula = ~ (1|gr(cl)*ar1(t)),
-                           #'     parameters = c(0.25,0.8)),
-                           #'   mean.function = list(
-                           #'     formula = ~ factor(t) + int - 1,
-                           #'     data=df,
-                           #'     parameters = c(rep(0,5),0.6),
-                           #'     family = binomial())
+                           #'   covariance = list( formula = ~ (1|gr(cl)*ar1(t))),
+                           #'   mean.function = list(formula = ~ factor(t) + int - 1),
+                           #'   data = df,
+                           #'   family = stats::binomial()
                            #' )
-                           #' ysim <- des$sim_data()
-                           #' # fits the models using MCEM with 250 samples
-                           #' fit1 <- des$MCML(y = ysim, m=250)
-                           #' #fits the models using MCNR and report detailed output
-                           #' fit2 <- des$MCML(y = ysim,
-                           #'   method="mcnr",
-                           #'   options = list(trace = 2))
+                           #' ysim <- des$sim_data() # simulate some data from the model
+                           #' fit1 <- des$MCML(y = ysim)
+                           #' #fits the models using MCEM and report detailed output
+                           #' fit2 <- des$MCML(y = ysim,method="mcem")
                            #'  #adds a simulated likelihood step after the MCEM algorithm
-                           #' fit4 <- des$MCML(y = ysim,
-                           #'   sim.lik.step = TRUE)  
+                           #' fit4 <- des$MCML(y = ysim, sim.lik.step = TRUE)  
+                           #' 
+                           #' # to set better starting values we can use the update_parameters function 
+                           #' des$update_parameters(mean = rep(0.5,6), cov = c(0.3,0.7))
                            #'}
                            #'@md
                            MCML = function(y,
@@ -104,11 +104,9 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                            sim.lik.step = FALSE,
                                            verbose=TRUE,
                                            tol = 1e-2,
-                                           m=100,
                                            max.iter = 30,
                                            sparse = FALSE,
                                            usestan = TRUE,
-                                           warmup = 100,
                                            options = list()){
                              
                              # checks
@@ -172,7 +170,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              if(verbose)cat("\nStart: ",start[all_pars],"\n")
                              
                              iter <- 0
-                             niter <- m
+                             niter <- self$mcmc_options$samps
                              Q = ncol(self$covariance$Z)
                              invfunc <- self$mean_function$family$linkinv
                              ## generate sparse matrix if sparse option
@@ -229,8 +227,8 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                  
                                  capture.output(fit <- mod$sample(data = data,
                                                                   chains = 1,
-                                                                  iter_warmup = warmup,
-                                                                  iter_sampling = m,
+                                                                  iter_warmup = self$mcmc_options$warmup,
+                                                                  iter_sampling = self$mcmc_options$samps,
                                                                   refresh = 0),
                                                 file=tempfile())
                                  dsamps <- fit$draws("gamma",format = "matrix")
@@ -362,15 +360,21 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                                                  link=self$mean_function$family[[2]],
                                                                  start = theta,
                                                                  mcnr = method=="mcnr",
-                                                                 m = m,
-                                                                 thin = 1, tol=tol,
-                                                                 warmup = warmup,step_size = 0.01,trace=trace
+                                                                 m = self$mcmc_options$samps,
+                                                                 maxiter = max.iter,
+                                                                 warmup = self$mcmc_options$warmup,
+                                                                 tol=tol,
+                                                                 verbose = verbose,
+                                                                 lambda = self$mcmc_options$lambda,
+                                                                 trace=trace,
+                                                                 refresh = self$mcmc_options$refresh,
+                                                                 maxsteps = self$mcmc_options$maxsteps
                                                                )))
                                theta[parInds$b] <-  res$beta
                                if(self$mean_function$family[[1]] == "gaussian")theta[parInds$sig] <- res$sigma
                                theta[parInds$cov] <- res$theta
                                not_conv <- !res$converged
-                               
+                               dsamps <- res$u
                              }
                              
                              
@@ -522,7 +526,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                          converged = !not_conv,
                                          method = method,
                                          hessian = hessused,
-                                         m = m,
+                                         m = self$mean_function$samps,
                                          tol = tol,
                                          sim_lik = sim.lik.step,
                                          aic = aic,
@@ -541,7 +545,26 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              #self$check(verbose=FALSE)
                              
                              return(out)
-                           }
+                           },
+                           #' @field mcmc_options There are five options for MCMC sampling that are specified in this list:
+                           #' * `warmup` The number of warmup iterations. Note that if using the internal HMC
+                           #' sampler, this only applies to the first iteration of the MCML algorithm, as the 
+                           #' values from the previous iteration are carried over.
+                           #' * `samps` The number of MCMC samples drawn in the MCML algorithm. For 
+                           #' smaller tolerance values larger numbers of samples are required. For the internal
+                           #' HMC sampler, larger numbers of samples are generally required than if using Stan since
+                           #' the samples generally exhibit higher autocorrealtion, especially for more complex 
+                           #' covariance structures.
+                           #' * `lambda` (Only relevant for the internal HMC sampler) Value of the trajectory length of the leapfrog integrator in Hamiltonian Monte Carlo
+                           #'  (equal to number of steps times the step length). Larger values result in lower correlation in samples, but
+                           #'  require larger numbers of steps and so is slower.
+                           #'  * `refresh` How frequently to print to console MCMC progress if displaying verbose output.
+                           #'  * `maxsteps` (Only relevant for the internal HMC sampler) Integer. The maximum number of steps of the leapfrom integrator
+                           mcmc_options = list(warmup = 500, 
+                                               samps = 250, 
+                                               lambda = 0.05,
+                                               refresh = 500,
+                                               maxsteps = 100)
                          ))
 
 #' Returns the file name and type for MCNR function
