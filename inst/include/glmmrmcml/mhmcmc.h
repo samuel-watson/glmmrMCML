@@ -11,8 +11,6 @@
 // #include <omp.h>
 // #endif
 
-// a VERY basic metropolis hastings sampler for the random effects
-
 namespace glmmr {
 
 namespace mcmc {
@@ -26,25 +24,23 @@ public:
   Eigen::VectorXd u_;
   Eigen::VectorXd up_;
   Eigen::VectorXd r_;
-  //Eigen::VectorXd rp_;
   Eigen::VectorXd grad_;
+  int refresh_;
+  double lambda_;
+  int max_steps_;
+  std::minstd_rand gen_;
+  std::uniform_real_distribution<double> dist_;
   int accept_;
   double e_;
   double ebar_;
-  int refresh_;
   int steps_;
   double H_;
-  double lambda_;
-  std::minstd_rand gen_;
-  std::uniform_real_distribution<double> dist_;
-  int max_steps_;
-  
 
   mcmcRunHMC(glmmr::mcmlModel* model, int trace = 0,
           double lambda = 0.01, int refresh = 500, int max_steps = 100) : model_(model),
           trace_(trace),   u_(model_->Q_),up_(model_->Q_),r_(model_->Q_),
           grad_(model_->Q_), 
-          lambda_(lambda), refresh_(refresh), max_steps_(max_steps) {
+           refresh_(refresh),lambda_(lambda), max_steps_(max_steps) {
     initialise_u();
   }
 
@@ -105,7 +101,6 @@ public:
     
     if(accept){
       u_ = up_;
-      //r_ = -1.0*rp_;
       accept_++;
     }
     
@@ -113,9 +108,7 @@ public:
       double f1 = 1.0/(iter + 10);
       H_ = (1-f1)*H_ + f1*(0.65 - prob);
       double loge = -4.60517 - (sqrt((double)iter / 0.05))*H_;
-      //Rcpp::Rcout << "\nH: " << H_ << " frac: " << sqrt((double)iter / 0.05) << " loge " << loge;
       double powm = std::pow(iter,-0.75);
-      //Rcpp::Rcout << " powm: " << powm;
       double logbare = powm*loge + (1-powm)*log(ebar_);
       e_ = exp(loge);
       ebar_ = exp(logbare);
