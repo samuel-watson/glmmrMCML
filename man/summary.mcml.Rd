@@ -12,7 +12,7 @@
 \item{...}{Further arguments passed from other methods}
 }
 \value{
-TBC
+A list with random effect names and a data frame with random effect mean and credible intervals
 }
 \description{
 Summary method for class "`mcml`"

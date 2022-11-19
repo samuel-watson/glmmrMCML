@@ -148,7 +148,7 @@ public:
       break;
     case 7:
       {
-        grad.noalias() += (-1/(var_par_*var_par_))*(ZL_.transpose()*(y_ - mu));
+        grad.noalias() += (1.0/(var_par_*var_par_))*(ZL_.transpose()*(y_ - mu));
         break;
       }
     case 8: //need to update

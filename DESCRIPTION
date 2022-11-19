@@ -2,7 +2,7 @@ Package: glmmrMCML
 Type: Package
 Title: Markov Chain Monte Carlo Maximum Likelihood for Generalised Linear Mixed Models
 Version: 0.2.1
-Date: 2022-11-03
+Date: 2022-11-19
 Authors@R: c(person("Sam", "Watson", email = "S.I.Watson@bham.ac.uk",
                   role = c("aut", "cre")),
              person("Yi", "Pan", email = "ypan1988@gmail.com",

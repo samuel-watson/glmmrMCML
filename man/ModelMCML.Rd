@@ -3,6 +3,9 @@
 \name{ModelMCML}
 \alias{ModelMCML}
 \title{Extension to the Model class to use Markov Chain Monte Carlo Maximum Likelihood}
+\value{
+No return value, called for side effects.
+}
 \description{
 Extension to the Model class to use Markov Chain Monte Carlo Maximum Likelihood
 
