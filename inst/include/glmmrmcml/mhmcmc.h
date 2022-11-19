@@ -35,12 +35,15 @@ public:
   double ebar_;
   int steps_;
   double H_;
+  double target_accept_;
 
   mcmcRunHMC(glmmr::mcmlModel* model, int trace = 0,
-          double lambda = 0.01, int refresh = 500, int max_steps = 100) : model_(model),
+          double lambda = 0.01, int refresh = 500, int max_steps = 100,
+          double target_accept = 0.9) : model_(model),
           trace_(trace),   u_(model_->Q_),up_(model_->Q_),r_(model_->Q_),
           grad_(model_->Q_), 
-           refresh_(refresh),lambda_(lambda), max_steps_(max_steps) {
+           refresh_(refresh),lambda_(lambda), max_steps_(max_steps),
+           target_accept_(target_accept){
     initialise_u();
   }
 
@@ -71,10 +74,10 @@ public:
     
     // leapfrog integrator
     for(int i=0; i< steps_; i++){
-      r_ -= (e_/2)*grad_;
+      r_ += (e_/2)*grad_;
       up_ += e_ * r_;
       grad_ = model_->log_grad(up_);
-      r_ -= (e_/2)*grad_;
+      r_ += (e_/2)*grad_;
     }
     
     double lprt_ = 0.5*r_.transpose()*r_;
@@ -106,7 +109,7 @@ public:
     
     if(adapt){
       double f1 = 1.0/(iter + 10);
-      H_ = (1-f1)*H_ + f1*(0.65 - prob);
+      H_ = (1-f1)*H_ + f1*(target_accept_ - prob);
       double loge = -4.60517 - (sqrt((double)iter / 0.05))*H_;
       double powm = std::pow(iter,-0.75);
       double logbare = powm*loge + (1-powm)*log(ebar_);

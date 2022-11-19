@@ -31,8 +31,8 @@
 #' @param maxsteps Integer. The maximum number of steps of the leapfrom integrator
 #' @return A list with the maximum likelihood estimates of the model parameters, the final set of MCMC samples, and
 #' and indciator for whether the algorithm converged.
-mcml_full <- function(cov, data, eff_range, Z, X, y, family, link, start, mcnr = FALSE, m = 500L, maxiter = 30L, warmup = 500L, tol = 1e-3, verbose = TRUE, lambda = 0.05, trace = 0L, refresh = 500L, maxsteps = 100L) {
-    .Call(`_glmmrMCML_mcml_full`, cov, data, eff_range, Z, X, y, family, link, start, mcnr, m, maxiter, warmup, tol, verbose, lambda, trace, refresh, maxsteps)
+mcml_full <- function(cov, data, eff_range, Z, X, y, family, link, start, mcnr = FALSE, m = 500L, maxiter = 30L, warmup = 500L, tol = 1e-3, verbose = TRUE, lambda = 0.05, trace = 0L, refresh = 500L, maxsteps = 100L, target_accept = 0.9) {
+    .Call(`_glmmrMCML_mcml_full`, cov, data, eff_range, Z, X, y, family, link, start, mcnr, m, maxiter, warmup, tol, verbose, lambda, trace, refresh, maxsteps, target_accept)
 }
 
 #' Hamiltonian Monte Carlo Sampler for Model Random Effects
@@ -57,8 +57,8 @@ mcml_full <- function(cov, data, eff_range, Z, X, y, family, link, start, mcnr =
 #' @param refresh Integer. Number of MCMC iterations to print progress to the console (requires verbose=TRUE)
 #' @param maxsteps Integer. The maximum number of steps of the leapfrom integrator
 #' @return A matrix (of dimension number of random effects * number of samples)
-mcmc_sample <- function(Z, L, X, y, beta, family, link, warmup, nsamp, lambda, var_par = 1, trace = 0L, refresh = 500L, maxsteps = 100L) {
-    .Call(`_glmmrMCML_mcmc_sample`, Z, L, X, y, beta, family, link, warmup, nsamp, lambda, var_par, trace, refresh, maxsteps)
+mcmc_sample <- function(Z, L, X, y, beta, family, link, warmup, nsamp, lambda, var_par = 1, trace = 0L, refresh = 500L, maxsteps = 100L, target_accept = 0.9) {
+    .Call(`_glmmrMCML_mcmc_sample`, Z, L, X, y, beta, family, link, warmup, nsamp, lambda, var_par, trace, refresh, maxsteps, target_accept)
 }
 
 #' Likelihood maximisation for the GLMM 

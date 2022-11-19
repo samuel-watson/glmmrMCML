@@ -368,7 +368,8 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                                                  lambda = self$mcmc_options$lambda,
                                                                  trace=trace,
                                                                  refresh = self$mcmc_options$refresh,
-                                                                 maxsteps = self$mcmc_options$maxsteps
+                                                                 maxsteps = self$mcmc_options$maxsteps,
+                                                                 target_accept = self$mcmc_options$target_accept
                                                                )))
                                theta[parInds$b] <-  res$beta
                                if(self$mean_function$family[[1]] == "gaussian")theta[parInds$sig] <- res$sigma
@@ -557,14 +558,15 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            #' covariance structures.
                            #' * `lambda` (Only relevant for the internal HMC sampler) Value of the trajectory length of the leapfrog integrator in Hamiltonian Monte Carlo
                            #'  (equal to number of steps times the step length). Larger values result in lower correlation in samples, but
-                           #'  require larger numbers of steps and so is slower.
+                           #'  require larger numbers of steps and so is slower. Smaller numbers are likely required for non-linear GLMMs.
                            #'  * `refresh` How frequently to print to console MCMC progress if displaying verbose output.
                            #'  * `maxsteps` (Only relevant for the internal HMC sampler) Integer. The maximum number of steps of the leapfrom integrator
                            mcmc_options = list(warmup = 500, 
                                                samps = 250, 
-                                               lambda = 0.05,
+                                               lambda = 5,
                                                refresh = 500,
-                                               maxsteps = 100)
+                                               maxsteps = 100,
+                                               target_accept = 0.95)
                          ))
 
 #' Returns the file name and type for MCNR function

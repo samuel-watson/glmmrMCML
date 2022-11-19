@@ -59,7 +59,8 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
                      double lambda = 0.05,
                      int trace = 0,
                      int refresh = 500,
-                     int maxsteps = 100){
+                     int maxsteps = 100,
+                     double target_accept = 0.9){
   
   glmmr::DData dat(cov,data,eff_range);
   Eigen::VectorXd theta = start.segment(X.cols(),dat.n_cov_pars()).matrix();
@@ -69,7 +70,7 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
   Eigen::MatrixXd u = Eigen::MatrixXd::Zero(Z.cols(),m);
   Eigen::MatrixXd L = dmat.genD(0,true,false);
   glmmr::mcmlModel model(Z,&L,X,y,&u,beta,var_par,family,link);
-  glmmr::mcmc::mcmcRunHMC mcmc(&model,trace,lambda, refresh, maxsteps);
+  glmmr::mcmc::mcmcRunHMC mcmc(&model,trace,lambda, refresh, maxsteps, target_accept);
   glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,&model, start,trace);
   
   Eigen::ArrayXd diff(start.size());
@@ -322,13 +323,14 @@ Eigen::ArrayXXd mcmc_sample(const Eigen::MatrixXd &Z,
                             double var_par = 1,
                             int trace = 0, 
                             int refresh = 500,
-                            int maxsteps = 100){
+                            int maxsteps = 100,
+                            double target_accept = 0.9){
   
   //int niter = thin <= 1 ? nsamp : (int)floor(nsamp/thin);
   Eigen::MatrixXd u = Eigen::MatrixXd::Zero(Z.cols(),nsamp);
   Eigen::MatrixXd L_ = L;
   glmmr::mcmlModel model(Z,&L_,X,y,&u,beta,var_par,family,link);
-  glmmr::mcmc::mcmcRunHMC mcmc(&model,trace,lambda,refresh,maxsteps);
+  glmmr::mcmc::mcmcRunHMC mcmc(&model,trace,lambda,refresh,maxsteps,target_accept);
   if(trace > 0 ) Rcpp::Rcout << " \n STARTING SAMPLING" << std::endl;
   Eigen::ArrayXXd samples = mcmc.sample(warmup,nsamp);
   return samples;

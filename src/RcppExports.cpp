@@ -13,8 +13,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // mcml_full
-Rcpp::List mcml_full(const Eigen::ArrayXXi& cov, const Eigen::ArrayXd& data, const Eigen::ArrayXd& eff_range, const Eigen::MatrixXd& Z, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, std::string family, std::string link, Eigen::ArrayXd start, bool mcnr, int m, int maxiter, int warmup, double tol, bool verbose, double lambda, int trace, int refresh, int maxsteps);
-RcppExport SEXP _glmmrMCML_mcml_full(SEXP covSEXP, SEXP dataSEXP, SEXP eff_rangeSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP mcnrSEXP, SEXP mSEXP, SEXP maxiterSEXP, SEXP warmupSEXP, SEXP tolSEXP, SEXP verboseSEXP, SEXP lambdaSEXP, SEXP traceSEXP, SEXP refreshSEXP, SEXP maxstepsSEXP) {
+Rcpp::List mcml_full(const Eigen::ArrayXXi& cov, const Eigen::ArrayXd& data, const Eigen::ArrayXd& eff_range, const Eigen::MatrixXd& Z, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, std::string family, std::string link, Eigen::ArrayXd start, bool mcnr, int m, int maxiter, int warmup, double tol, bool verbose, double lambda, int trace, int refresh, int maxsteps, double target_accept);
+RcppExport SEXP _glmmrMCML_mcml_full(SEXP covSEXP, SEXP dataSEXP, SEXP eff_rangeSEXP, SEXP ZSEXP, SEXP XSEXP, SEXP ySEXP, SEXP familySEXP, SEXP linkSEXP, SEXP startSEXP, SEXP mcnrSEXP, SEXP mSEXP, SEXP maxiterSEXP, SEXP warmupSEXP, SEXP tolSEXP, SEXP verboseSEXP, SEXP lambdaSEXP, SEXP traceSEXP, SEXP refreshSEXP, SEXP maxstepsSEXP, SEXP target_acceptSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -37,13 +37,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< int >::type refresh(refreshSEXP);
     Rcpp::traits::input_parameter< int >::type maxsteps(maxstepsSEXP);
-    rcpp_result_gen = Rcpp::wrap(mcml_full(cov, data, eff_range, Z, X, y, family, link, start, mcnr, m, maxiter, warmup, tol, verbose, lambda, trace, refresh, maxsteps));
+    Rcpp::traits::input_parameter< double >::type target_accept(target_acceptSEXP);
+    rcpp_result_gen = Rcpp::wrap(mcml_full(cov, data, eff_range, Z, X, y, family, link, start, mcnr, m, maxiter, warmup, tol, verbose, lambda, trace, refresh, maxsteps, target_accept));
     return rcpp_result_gen;
 END_RCPP
 }
 // mcmc_sample
-Eigen::ArrayXXd mcmc_sample(const Eigen::MatrixXd& Z, const Eigen::MatrixXd& L, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, const Eigen::VectorXd& beta, std::string family, std::string link, int warmup, int nsamp, double lambda, double var_par, int trace, int refresh, int maxsteps);
-RcppExport SEXP _glmmrMCML_mcmc_sample(SEXP ZSEXP, SEXP LSEXP, SEXP XSEXP, SEXP ySEXP, SEXP betaSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP warmupSEXP, SEXP nsampSEXP, SEXP lambdaSEXP, SEXP var_parSEXP, SEXP traceSEXP, SEXP refreshSEXP, SEXP maxstepsSEXP) {
+Eigen::ArrayXXd mcmc_sample(const Eigen::MatrixXd& Z, const Eigen::MatrixXd& L, const Eigen::MatrixXd& X, const Eigen::VectorXd& y, const Eigen::VectorXd& beta, std::string family, std::string link, int warmup, int nsamp, double lambda, double var_par, int trace, int refresh, int maxsteps, double target_accept);
+RcppExport SEXP _glmmrMCML_mcmc_sample(SEXP ZSEXP, SEXP LSEXP, SEXP XSEXP, SEXP ySEXP, SEXP betaSEXP, SEXP familySEXP, SEXP linkSEXP, SEXP warmupSEXP, SEXP nsampSEXP, SEXP lambdaSEXP, SEXP var_parSEXP, SEXP traceSEXP, SEXP refreshSEXP, SEXP maxstepsSEXP, SEXP target_acceptSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -61,7 +62,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< int >::type refresh(refreshSEXP);
     Rcpp::traits::input_parameter< int >::type maxsteps(maxstepsSEXP);
-    rcpp_result_gen = Rcpp::wrap(mcmc_sample(Z, L, X, y, beta, family, link, warmup, nsamp, lambda, var_par, trace, refresh, maxsteps));
+    Rcpp::traits::input_parameter< double >::type target_accept(target_acceptSEXP);
+    rcpp_result_gen = Rcpp::wrap(mcmc_sample(Z, L, X, y, beta, family, link, warmup, nsamp, lambda, var_par, trace, refresh, maxsteps, target_accept));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -239,8 +241,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_glmmrMCML_mcml_full", (DL_FUNC) &_glmmrMCML_mcml_full, 19},
-    {"_glmmrMCML_mcmc_sample", (DL_FUNC) &_glmmrMCML_mcmc_sample, 14},
+    {"_glmmrMCML_mcml_full", (DL_FUNC) &_glmmrMCML_mcml_full, 20},
+    {"_glmmrMCML_mcmc_sample", (DL_FUNC) &_glmmrMCML_mcmc_sample, 15},
     {"_glmmrMCML_mcml_optim", (DL_FUNC) &_glmmrMCML_mcml_optim, 12},
     {"_glmmrMCML_mcml_simlik", (DL_FUNC) &_glmmrMCML_mcml_simlik, 11},
     {"_glmmrMCML_mcml_optim_sparse", (DL_FUNC) &_glmmrMCML_mcml_optim_sparse, 14},
