@@ -38,6 +38,7 @@ using namespace Rcpp;
 //'  require larger numbers of steps and so is slower.
 //' @param refresh Integer. Number of MCMC iterations to print progress to the console (requires verbose=TRUE)
 //' @param maxsteps Integer. The maximum number of steps of the leapfrom integrator
+//' @param target_accept The target acceptance rate of HMC proposals (default 0.9)
 //' @return A list with the maximum likelihood estimates of the model parameters, the final set of MCMC samples, and
 //' and indciator for whether the algorithm converged.
 // [[Rcpp::export]]
@@ -308,6 +309,7 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
 //'  require larger numbers of steps and so is slower.
 //' @param refresh Integer. Number of MCMC iterations to print progress to the console (requires verbose=TRUE)
 //' @param maxsteps Integer. The maximum number of steps of the leapfrom integrator
+//' @param target_accept The target acceptance rate of HMC proposals (default 0.9)
 //' @return A matrix (of dimension number of random effects * number of samples)
 // [[Rcpp::export]]
 Eigen::ArrayXXd mcmc_sample(const Eigen::MatrixXd &Z,

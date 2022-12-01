@@ -6,6 +6,7 @@
 #include <RcppEigen.h>
 
 // [[Rcpp::depends(RcppEigen)]]
+// [[Rcpp::plugins(openmp)]]
 
 namespace glmmr {
 class SparseDMatrix {
@@ -89,7 +90,10 @@ public:
       logdetD += log(k);
     Eigen::ArrayXd logl(ncols);
     
+//#pragma omp parallel for
+#if defined(_OPENMP)
 #pragma omp parallel for
+#endif
     for(int i = 0; i < ncols; i++){
       std::vector<double> v(u.data(), u.data()+u.size());// = arma::conv_to<std::vector<double>>::from(u);//std::vector<double> v(n_);
       chol_->ldl_lsolve(&v[0]);

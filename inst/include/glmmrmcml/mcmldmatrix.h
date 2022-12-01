@@ -12,6 +12,7 @@
 #endif
 
 // [[Rcpp::depends(RcppEigen)]]
+// [[Rcpp::plugins(openmp)]]
 
 namespace glmmr {
   class MCMLDmatrix: public DMatrix {
@@ -26,7 +27,10 @@ namespace glmmr {
           data_->subdata(b);
           int n = data_->n_dim();
           int m = data_->matstart_;
+//#pragma omp parallel for
+#if defined(_OPENMP)
 #pragma omp parallel for
+#endif
           for(int i = 0; i < ncols; i++){
             Eigen::VectorXd uvals = u.col(i).segment(m, n);
             loglB(i) = loglik_block(b,uvals);

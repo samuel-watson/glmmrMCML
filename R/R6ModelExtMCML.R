@@ -192,6 +192,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                stop("cmdstanr is required to use Stan for sampling. See https://mc-stan.org/cmdstanr/ for details on how to install.\n
                                     Set option usestan=FALSE to use the in-built MCMC sampler.")
                              } else {
+                               if(verbose)message("If this is the first time running this model, it will be compiled by cmdstan.")
                                model_file <- system.file("stan",
                                                          file_type$file,
                                                          package = "glmmrMCML",

@@ -29,6 +29,7 @@
 #'  require larger numbers of steps and so is slower.
 #' @param refresh Integer. Number of MCMC iterations to print progress to the console (requires verbose=TRUE)
 #' @param maxsteps Integer. The maximum number of steps of the leapfrom integrator
+#' @param target_accept The target acceptance rate of HMC proposals (default 0.9)
 #' @return A list with the maximum likelihood estimates of the model parameters, the final set of MCMC samples, and
 #' and indciator for whether the algorithm converged.
 mcml_full <- function(cov, data, eff_range, Z, X, y, family, link, start, mcnr = FALSE, m = 500L, maxiter = 30L, warmup = 500L, tol = 1e-3, verbose = TRUE, lambda = 0.05, trace = 0L, refresh = 500L, maxsteps = 100L, target_accept = 0.9) {
@@ -56,6 +57,7 @@ mcml_full <- function(cov, data, eff_range, Z, X, y, family, link, start, mcnr =
 #'  require larger numbers of steps and so is slower.
 #' @param refresh Integer. Number of MCMC iterations to print progress to the console (requires verbose=TRUE)
 #' @param maxsteps Integer. The maximum number of steps of the leapfrom integrator
+#' @param target_accept The target acceptance rate of HMC proposals (default 0.9)
 #' @return A matrix (of dimension number of random effects * number of samples)
 mcmc_sample <- function(Z, L, X, y, beta, family, link, warmup, nsamp, lambda, var_par = 1, trace = 0L, refresh = 500L, maxsteps = 100L, target_accept = 0.9) {
     .Call(`_glmmrMCML_mcmc_sample`, Z, L, X, y, beta, family, link, warmup, nsamp, lambda, var_par, trace, refresh, maxsteps, target_accept)

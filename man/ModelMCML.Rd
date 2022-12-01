@@ -108,7 +108,7 @@ the samples generally exhibit higher autocorrealtion, especially for more comple
 covariance structures.
 \item \code{lambda} (Only relevant for the internal HMC sampler) Value of the trajectory length of the leapfrog integrator in Hamiltonian Monte Carlo
 (equal to number of steps times the step length). Larger values result in lower correlation in samples, but
-require larger numbers of steps and so is slower.
+require larger numbers of steps and so is slower. Smaller numbers are likely required for non-linear GLMMs.
 \item \code{refresh} How frequently to print to console MCMC progress if displaying verbose output.
 \item \code{maxsteps} (Only relevant for the internal HMC sampler) Integer. The maximum number of steps of the leapfrom integrator
 }}
@@ -136,6 +136,7 @@ require larger numbers of steps and so is slower.
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="sim_data"><a href='../../glmmrBase/html/Model.html#method-Model-sim_data'><code>glmmrBase::Model$sim_data()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_cols"><a href='../../glmmrBase/html/Model.html#method-Model-subset_cols'><code>glmmrBase::Model$subset_cols()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="subset_rows"><a href='../../glmmrBase/html/Model.html#method-Model-subset_rows'><code>glmmrBase::Model$subset_rows()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="glmmrBase" data-topic="Model" data-id="update_parameters"><a href='../../glmmrBase/html/Model.html#method-Model-update_parameters'><code>glmmrBase::Model$update_parameters()</code></a></span></li>
 </ul>
 </details>
 }}

@@ -18,7 +18,8 @@ mcmc_sample(
   var_par = 1,
   trace = 0L,
   refresh = 500L,
-  maxsteps = 100L
+  maxsteps = 100L,
+  target_accept = 0.9
 )
 }
 \arguments{
@@ -52,6 +53,8 @@ require larger numbers of steps and so is slower.}
 \item{refresh}{Integer. Number of MCMC iterations to print progress to the console (requires verbose=TRUE)}
 
 \item{maxsteps}{Integer. The maximum number of steps of the leapfrom integrator}
+
+\item{target_accept}{The target acceptance rate of HMC proposals (default 0.9)}
 }
 \value{
 A matrix (of dimension number of random effects * number of samples)
