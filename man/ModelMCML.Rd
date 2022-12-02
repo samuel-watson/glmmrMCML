@@ -66,18 +66,21 @@ is 1e-4.
 ## Method `ModelMCML$MCML`
 ## ------------------------------------------------
 
-\dontrun{
 df <- nelder(~(cl(10)*t(5)) > ind(10))
 df$int <- 0
 df[df$cl > 5, 'int'] <- 1
+# specify parameter values in the call for the data simulation below
 des <- ModelMCML$new(
-  covariance = list( formula = ~ (1|gr(cl)*ar1(t))),
-  mean.function = list(formula = ~ factor(t) + int - 1),
+  covariance = list( formula = ~ (1|gr(cl)*ar1(t)),
+                     parameters = c(0.25,0.7)), 
+  mean = list(formula = ~ factor(t) + int - 1,
+                        parameters = c(rep(0,5),-0.2)),
   data = df,
   family = stats::binomial()
 )
 ysim <- des$sim_data() # simulate some data from the model
-fit1 <- des$MCML(y = ysim)
+fit1 <- des$MCML(y = ysim,method="mcnr",usestan=FALSE,verbose=FALSE)
+\dontrun{
 #fits the models using MCEM and report detailed output
 fit2 <- des$MCML(y = ysim,method="mcem")
  #adds a simulated likelihood step after the MCEM algorithm
@@ -199,18 +202,21 @@ A \code{mcml} object
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{\dontrun{
-df <- nelder(~(cl(10)*t(5)) > ind(10))
+\preformatted{df <- nelder(~(cl(10)*t(5)) > ind(10))
 df$int <- 0
 df[df$cl > 5, 'int'] <- 1
+# specify parameter values in the call for the data simulation below
 des <- ModelMCML$new(
-  covariance = list( formula = ~ (1|gr(cl)*ar1(t))),
-  mean.function = list(formula = ~ factor(t) + int - 1),
+  covariance = list( formula = ~ (1|gr(cl)*ar1(t)),
+                     parameters = c(0.25,0.7)), 
+  mean = list(formula = ~ factor(t) + int - 1,
+                        parameters = c(rep(0,5),-0.2)),
   data = df,
   family = stats::binomial()
 )
 ysim <- des$sim_data() # simulate some data from the model
-fit1 <- des$MCML(y = ysim)
+fit1 <- des$MCML(y = ysim,method="mcnr",usestan=FALSE,verbose=FALSE)
+\dontrun{
 #fits the models using MCEM and report detailed output
 fit2 <- des$MCML(y = ysim,method="mcem")
  #adds a simulated likelihood step after the MCEM algorithm
