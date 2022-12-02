@@ -6,9 +6,10 @@
 #include <cmath> 
 #include <glmmr.h>
 #include "moremaths.h"
-
 #ifdef _OPENMP
-#include <omp.h>
+#include <omp.h>     
+#else
+#define omp_get_thread_num() 0
 #endif
 
 // [[Rcpp::depends(RcppEigen)]]
@@ -27,14 +28,13 @@ namespace glmmr {
           data_->subdata(b);
           int n = data_->n_dim();
           int m = data_->matstart_;
-//#pragma omp parallel for
-#if defined(_OPENMP)
+
 #pragma omp parallel for
-#endif
           for(int i = 0; i < ncols; i++){
             Eigen::VectorXd uvals = u.col(i).segment(m, n);
             loglB(i) = loglik_block(b,uvals);
           }
+          
           loglV += loglB.sum();
         }
         return loglV/ncols;

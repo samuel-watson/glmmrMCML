@@ -83,7 +83,7 @@ public:
     opt.set_lower(lower_b);
     opt.minimize(ldl, start_b);
     std::vector<double> beta = opt.par();
-    beta_ = Eigen::Map<Eigen::ArrayXd>(beta.data(),M_->P_);//opt.par().subvec(0,P_-1);
+    beta_ = Eigen::Map<Eigen::ArrayXd>(beta.data(),M_->P_);
     if(M_->family_=="gaussian") sigma_ = beta[M_->P_];
   }
   

@@ -120,6 +120,18 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              trace <- ifelse("trace"%in%names(options),options$trace,0)
                              #step_size <- ifelse("trace"%in%names(options),options$trace,0.015)
                              
+                             ### DO SOME BASIC CHECKS ON Y TO MAKE SURE IT DOESN'T CAUSE ERROR!
+                             if(self$mean_function$family[[1]]=="binomial"){
+                               if(!all(y==0 | y==1))stop("y must be 0 or 1")
+                             } else if(self$mean_function$family[[1]]=="poisson"){
+                               if(any(y <0) || any(y%%1 != 0))stop("y must be integer >= 0")
+                             } else if(self$mean_function$family[[1]]=="beta"){
+                               if(any(y<0 || y>1))stop("y must be between 0 and 1")
+                             } else if(self$mean_function$family[[1]]=="Gamma") {
+                               if(any(y<=0))stop("y must be positive")
+                             } else if(self$mean_function$family[[1]]=="gaussian" & self$mean_function$family[[2]]=="log"){
+                               if(any(y<=0))stop("y must be positive")
+                             }
                              
                              P <- ncol(self$mean_function$X)
                              R <- length(unlist(self$covariance$parameters))
@@ -188,16 +200,18 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              file_type <- mcnr_family(self$mean_function$family)
                              
                              ## set up sampler
-                             if(!requireNamespace("cmdstanr")){
-                               stop("cmdstanr is required to use Stan for sampling. See https://mc-stan.org/cmdstanr/ for details on how to install.\n
+                             if(usestan){
+                               if(!requireNamespace("cmdstanr")){
+                                 stop("cmdstanr is required to use Stan for sampling. See https://mc-stan.org/cmdstanr/ for details on how to install.\n
                                     Set option usestan=FALSE to use the in-built MCMC sampler.")
-                             } else {
-                               if(verbose)message("If this is the first time running this model, it will be compiled by cmdstan.")
-                               model_file <- system.file("stan",
-                                                         file_type$file,
-                                                         package = "glmmrMCML",
-                                                         mustWork = TRUE)
-                               mod <- suppressMessages(cmdstanr::cmdstan_model(model_file))
+                               } else {
+                                 if(verbose)message("If this is the first time running this model, it will be compiled by cmdstan.")
+                                 model_file <- system.file("stan",
+                                                           file_type$file,
+                                                           package = "glmmrMCML",
+                                                           mustWork = TRUE)
+                                 mod <- suppressMessages(cmdstanr::cmdstan_model(model_file))
+                               }
                              }
                              
                              
@@ -218,7 +232,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                ## ALGORITHMS
                                while(any(abs(theta-thetanew)>tol)&iter <= max.iter){
                                  iter <- iter + 1
-                                 if(verbose)cat("\nIter: ",iter,": ")
+                                 if(verbose)cat("\nIter: ",iter,"\n",Reduce(paste0,rep("-",40)))
                                  if(trace==2)t1 <- Sys.time()
                                  thetanew <- theta
                                  data$Xb <-  Matrix::drop(self$mean_function$X %*% thetanew[parInds$b])
@@ -290,7 +304,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                  }
                                  
                                  theta[parInds$b] <-  drop(fit_pars$beta)
-                                 if(self$mean_function$family[[1]] == "gaussian")theta[parInds$sig] <- fit_pars$sigma
+                                 if(self$mean_function$family[[1]] %in%c("gaussian","Gamma","beta"))theta[parInds$sig] <- fit_pars$sigma
                                  theta[parInds$cov] <- drop(fit_pars$theta)
                                  
                                  if(sparse){
@@ -301,7 +315,14 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                  }
                                  if(trace==2)t3 <- Sys.time()
                                  if(trace==2)cat("\nModel fitting took: ",t3-t2)
-                                 if(verbose)cat("\ntheta:",theta[all_pars])
+                                 if(verbose){
+                                   #cat("\ntheta:",theta[all_pars])
+                                   cat("\nBeta: ", theta[parInds$b])
+                                   cat("\nTheta: ", theta[parInds$cov])
+                                   if(self$mean_function$family[[1]]%in%c("gaussian","Gamma","beta"))cat("\nSigma: ",theta[parInds$sig])
+                                   cat("\nMax. diff: ", max(abs(theta-thetanew)))
+                                   cat("\n",Reduce(paste0,rep("-",40)))
+                                }
                                }
                                
                                not_conv <- iter >= max.iter|any(abs(theta-thetanew)>tol)
@@ -349,7 +370,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                
                              } else {
                                # use internal mcmc sampler
-                               if(verbose)message("Using in-built MCMC sampler. We recommend using Stan through cmdstanr if it is available.")
+                               if(verbose)message("Using in-built MCMC sampler.")
                                
                                res <- do.call(mcml_full,append(self$covariance$get_D_data(),
                                                                list(

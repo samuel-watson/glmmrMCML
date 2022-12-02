@@ -7,7 +7,9 @@
 #include "moremaths.h"
 
 #ifdef _OPENMP
-#include <omp.h>
+#include <omp.h>     
+#else
+#define omp_get_thread_num() 0
 #endif
 
 // [[Rcpp::depends(BH)]]
@@ -23,9 +25,9 @@ public:
   Eigen::VectorXd xb_;
   Eigen::MatrixXd ZL_;
   Eigen::MatrixXd* L_;
-  Eigen::MatrixXd ZtZ_;
+  //Eigen::MatrixXd ZtZ_;
   Eigen::VectorXd y_;
-  Eigen::VectorXd Zyxb_;
+  //Eigen::VectorXd Zyxb_;
   Eigen::MatrixXd* u_;
   double var_par_;
   std::string family_; 
@@ -46,8 +48,8 @@ public:
     double var_par,
     std::string family, 
     std::string link
-  ) : X_(X),  Z_(Z), xb_(X.rows()), ZL_(X.rows(),Z.cols()), L_(L), ZtZ_(Z.transpose()*Z), 
-      y_(y), Zyxb_(Z.cols()), u_(u), var_par_(var_par), family_(family), link_(link) {
+  ) : X_(X),  Z_(Z), xb_(X.rows()), ZL_(X.rows(),Z.cols()), L_(L),  
+       y_(y),  u_(u), var_par_(var_par), family_(family), link_(link) { //ZtZ_(Z.cols(),Z.cols()),Zyxb_(Z.cols()),
     xb_ = X* beta;
     if(L != nullptr)ZL_ = Z * (*L);  
     n_ = X.rows();
@@ -73,9 +75,9 @@ public:
     if(flink == 8){
       y_ = y_.log();
     }
-    
-    ZtZ_.noalias() += Eigen::MatrixXd::Identity(ZtZ_.rows(),ZtZ_.cols());
-    Zyxb_ = Z_.transpose()*(y_ - xb_);
+    //ZtZ_ = ZL_.transpose()*ZL_;
+    //ZtZ_.noalias() += Eigen::MatrixXd::Identity(ZtZ_.rows(),ZtZ_.cols());
+    //Zyxb_ = ZL_.transpose()*(y_ - xb_);
   }
   
   void update_beta(const Eigen::VectorXd &beta){
@@ -97,23 +99,18 @@ public:
     Eigen::VectorXd mu = xb_ + ZL_*v;
     Eigen::ArrayXd ll(n_);
     Eigen::ArrayXd lp(v.size());
-    
-//#pragma omp parallel for
-#if defined(_OPENMP)
+
 #pragma omp parallel for
-#endif
     for(int i = 0; i < n_; i++){
       ll(i) = glmmr::maths::log_likelihood(y_(i),mu(i),var_par_,flink);
     }
-    
-//#pragma omp parallel for
-#if defined(_OPENMP)
 #pragma omp parallel for
-#endif
     for(int i = 0; i < v.size(); i++){
       lp(i) = glmmr::maths::log_likelihood(v(i),0,1,7);
     }
-    
+
+
+
     return ll.sum() + lp.sum();
 
   }
@@ -127,33 +124,46 @@ public:
     case 1:
     {
       Eigen::VectorXd mu = xb_ + ZL_*v;
-      for(int i = 0; i < mu.size(); i++)mu(i) = exp(mu(i));
+      mu = (mu.array().exp()).matrix();
+// #pragma omp parallel for
+//       for(int i = 0; i < mu.size(); i++)mu(i) = exp(mu(i));
       grad.noalias() += ZL_.transpose()*(y_-mu);
       break;
     }
     case 2:
     {
       Eigen::VectorXd mu = xb_ + ZL_*v;
-      for(int i = 0; i < mu.size(); i++)mu(i) = y_(i)/mu(i) - 1;
+      mu = (mu.array().inverse()).matrix();
+      mu = (y_.array()*mu.array()).matrix();
+      mu -= Eigen::VectorXd::Ones(mu.size());
+// #pragma omp parallel for
+//       for(int i = 0; i < mu.size(); i++)mu(i) = y_(i)/mu(i) - 1;
       grad.noalias() +=  ZL_.transpose()*mu;
       break;
     }
     case 3:
       {
         Eigen::VectorXd mu = xb_ + ZL_*v;
-        for(int i = 0; i < mu.size(); i++){
-          if(y_(i)==1){
-            mu(i) = 1/(exp(mu(i))+1);
-          } else if(y_(i)==0){
-            mu(i) = 1/(exp(mu(i))+1) - 1;
-          }
-        }
+        mu = (mu.array().exp()).matrix();
+        mu += Eigen::VectorXd::Ones(mu.size());
+        mu = (mu.array().inverse()).matrix();
+        mu += y_;
+        mu -= Eigen::VectorXd::Ones(mu.size());
+// #pragma omp parallel for
+//         for(int i = 0; i < mu.size(); i++){
+//           if(y_(i)==1){
+//             mu(i) = 1/(exp(mu(i))+1);
+//           } else if(y_(i)==0){
+//             mu(i) = 1/(exp(mu(i))+1) - 1;
+//           }
+//         }
         grad.noalias() +=  ZL_.transpose()*mu;
         break;
       }
     case 4:
       {
         Eigen::VectorXd mu = xb_ + ZL_*v;
+#pragma omp parallel for
         for(int i = 0; i < mu.size(); i++){
           if(y_(i)==1){
             mu(i) = 1;
@@ -167,6 +177,7 @@ public:
     case 5: 
       {
         Eigen::VectorXd mu = xb_ + ZL_*v;
+#pragma omp parallel for
         for(int i = 0; i < mu.size(); i++){
           if(y_(i)==1){
             mu(i) = 1/mu(i);
@@ -180,6 +191,7 @@ public:
     case 6:
       {
         Eigen::VectorXd mu = xb_ + ZL_*v;
+#pragma omp parallel for
         for(int i = 0; i < mu.size(); i++){
           if(y_(i)==1){
             mu(i) = (double)R::dnorm(mu(i),0,1,false)/((double)R::pnorm(mu(i),0,1,true,false));
@@ -192,37 +204,44 @@ public:
       }
     case 7:
       {
-        //grad.noalias() += (1.0/(var_par_*var_par_))*(ZL_.transpose()*(y_ - mu));
-        grad.noalias() += (1.0/(var_par_*var_par_))*(Zyxb_ - ZtZ_*v);
+        Eigen::VectorXd mu = xb_ + ZL_*v;
+        grad.noalias() += (1.0/(var_par_*var_par_))*(ZL_.transpose()*(y_ - mu));
+        //grad.noalias() += (1.0/(var_par_*var_par_))*(Zyxb_ - ZtZ_*v);
         break;
       }
     case 8: //need to update
       {
-        grad.noalias() += (1.0/(var_par_*var_par_))*(Zyxb_ - ZtZ_*v);
+        Eigen::VectorXd mu = xb_ + ZL_*v;
+        grad.noalias() += (1.0/(var_par_*var_par_))*(ZL_.transpose()*(y_ - mu));
+        //grad.noalias() += (1.0/(var_par_*var_par_))*(Zyxb_ - ZtZ_*v);
         break;
       }
     case 9:
       {
         Eigen::VectorXd mu = xb_ + ZL_*v;
-        for(int i = 0; i < mu.size(); i++)mu(i) = exp(-1.0*mu(i));
+        mu *= -1.0;
+        mu = (mu.array().exp()).matrix();
+// #pragma omp parallel for
+//         for(int i = 0; i < mu.size(); i++)mu(i) = exp(-1.0*mu(i));
         grad.noalias() += ZL_.transpose()*(y_.array()*mu.array()-1).matrix()*var_par_;
         break;
       }
     case 10:
       {
-        Eigen::VectorXd mu = (xb_ + ZL_*v).inverse();
+        Eigen::VectorXd mu = ((xb_ + ZL_*v).array().inverse()).matrix();
         grad.noalias() += ZL_.transpose()*(mu-y_)*var_par_;
         break;
       }
     case 11:
       {
-        Eigen::VectorXd mu = (xb_ + ZL_*v).inverse();
+        Eigen::VectorXd mu = ((xb_ + ZL_*v).array().inverse()).matrix();
         grad.noalias() += ZL_.transpose()*((y_.array()*mu.array()*mu.array()).matrix() - mu)*var_par_;
         break;
       }
     case 12:
       {
         Eigen::VectorXd mu = xb_ + ZL_*v;
+#pragma omp parallel for
         for(int i = 0; i < mu.size(); i++){
           mu(i) = exp(mu(i))/(exp(mu(i))+1);
           mu(i) = (mu(i)/(1+exp(mu(i)))) * var_par_ * (log(y_(i)) - log(1- y_(i)) - boost::math::digamma(mu(i)*var_par_) + boost::math::digamma((1-mu(i))*var_par_));
@@ -236,20 +255,20 @@ public:
   }
     
   
-  // log likelihood 
+  
   
   double log_likelihood() {
     Eigen::ArrayXd ll = Eigen::ArrayXd::Zero(niter_);
     Eigen::MatrixXd zd = Z_ * (*u_);
-//#pragma omp parallel for
-#if defined(_OPENMP)
+
 #pragma omp parallel for
-#endif
     for(int j=0; j<niter_ ; j++){
       for(int i = 0; i<n_; i++){
         ll(j) += glmmr::maths::log_likelihood(y_(i),xb_(i) + zd.col(j)(i),var_par_,flink);
       }
-    } 
+    }
+
+    
     return ll.mean();
   }
   

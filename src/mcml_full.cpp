@@ -3,10 +3,6 @@
 #include <RcppEigen.h>
 using namespace Rcpp;
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 
 // [[Rcpp::depends(RcppEigen)]]
 
@@ -66,12 +62,12 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
   glmmr::DData dat(cov,data,eff_range);
   Eigen::VectorXd theta = start.segment(X.cols(),dat.n_cov_pars()).matrix();
   Eigen::VectorXd beta = start.segment(0,X.cols()).matrix();
-  double var_par = family=="gaussian"||family=="gamma" ? start(start.size()-1) : 1;
+  double var_par = family=="gaussian"||family=="Gamma" ? start(start.size()-1) : 1;
   glmmr::MCMLDmatrix dmat(&dat, theta);
   Eigen::MatrixXd u = Eigen::MatrixXd::Zero(Z.cols(),m);
   Eigen::MatrixXd L = dmat.genD(0,true,false);
   glmmr::mcmlModel model(Z,&L,X,y,&u,beta,var_par,family,link);
-  glmmr::mcmc::mcmcRunHMC mcmc(&model,trace,lambda, refresh, maxsteps, target_accept);
+  glmmr::mcmc::mcmcRunHMC mcmc(&model,trace,lambda, refresh, maxsteps, target_accept, verbose);
   glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,&model, start,trace);
   
   Eigen::ArrayXd diff(start.size());
@@ -85,7 +81,7 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
   if(trace > 0 ) Rcpp::Rcout << "\n STARTING MCMCML \n " ;
   
   while(maxdiff > tol && iter <= maxiter){
-    if(verbose)Rcpp::Rcout << "\n\nIter " << iter;
+    if(verbose)Rcpp::Rcout << "\n\nIter " << iter << "\n" << std::string(40, '-');
     if(trace > 0 ) Rcpp::Rcout << "\n MCMC sampling \n" ;
     // skip the warmup after first iteration as it will start from the previous iteration
     // if(iter == 1){
@@ -94,7 +90,7 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
     //   u = mcmc.sample(10,m,10);
     // }
     u = mcmc.sample(warmup,m);
-    
+    if(verbose) Rcpp::Rcout << "\nEstimating parameters" ;
     if(trace > 0 ) Rcpp::Rcout << "\n Estimating beta " ;
     if(!mcnr){
       mc.l_optim();
@@ -106,7 +102,7 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
     
     newbeta = mc.get_beta();
     newtheta = mc.get_theta();
-    if(family=="gaussian"||family=="gamma") new_var_par = mc.get_sigma();
+    if(family=="gaussian"||family=="Gamma") new_var_par = mc.get_sigma();
     
     // check the differences
     diff.segment(0,beta.size()) = (beta - newbeta).cwiseAbs();
@@ -131,10 +127,12 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
     iter++;
     
     if(verbose){
-      Rcpp::Rcout << "\nbeta: " << beta.transpose() << " theta: " << theta.transpose();
-      if(family=="gaussian"||family=="gamma") Rcpp::Rcout << " sigma: " << var_par;
+      
+      Rcpp::Rcout << "\nbeta: " << beta.transpose() << "\ntheta: " << theta.transpose();
+      if(family=="gaussian"||family=="Gamma"||family=="beta") Rcpp::Rcout << "\nsigma: " << var_par;
       Rcpp::Rcout << "\n Max. diff: " << maxdiff;
       if(converged)Rcpp::Rcout << " CONVERGED!";
+      Rcpp::Rcout << "\n" << std::string(40, '-');
     }
     
     

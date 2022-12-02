@@ -4,6 +4,11 @@
 #include <SparseChol.h>
 #include <glmmr.h>
 #include <RcppEigen.h>
+#ifdef _OPENMP
+#include <omp.h>     
+#else
+#define omp_get_thread_num() 0
+#endif
 
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::plugins(openmp)]]
@@ -90,17 +95,16 @@ public:
       logdetD += log(k);
     Eigen::ArrayXd logl(ncols);
     
-//#pragma omp parallel for
-#if defined(_OPENMP)
 #pragma omp parallel for
-#endif
     for(int i = 0; i < ncols; i++){
-      std::vector<double> v(u.data(), u.data()+u.size());// = arma::conv_to<std::vector<double>>::from(u);//std::vector<double> v(n_);
+      std::vector<double> v(u.data(), u.data()+u.size());
       chol_->ldl_lsolve(&v[0]);
       chol_->ldl_d2solve(&v[0]);
       double quadform = glmmr::algo::inner_sum(&v[0],&v[0],n_);
       logl(i) = (-0.5*n_ * log(2*M_PI) - 0.5*logdetD - 0.5*quadform);
     }
+
+    
     
     return logl.mean();
   }
