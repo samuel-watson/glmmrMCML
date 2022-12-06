@@ -19,18 +19,20 @@
 #' @export
 print.mcml <- function(x, ...){
   digits <- 2
-  cat("Markov chain Monte Carlo Maximum Likelihood Estimation\nAlgorithm: ",
-      ifelse(x$method=="mcem","Markov Chain Expectation Maximisation",
-             "Markov Chain Newton-Raphson"),
+  cat(ifelse(x$method%in%c("mcem","mcnr"),
+             "Markov chain Monte Carlo Maximum Likelihood Estimation\nAlgorithm: ",
+             "Maximum Likelihood Estimation with Laplace Approximation "),
+      ifelse(x$method=="LA","",ifelse(x$method=="mcem","Markov Chain Expectation Maximisation",
+                                        "Markov Chain Newton-Raphson")),
       ifelse(x$sim_step," with simulated likelihood step\n","\n"))
   
   cat("\nFixed effects formula :",x$mean_form)
   cat("\nCovariance function formula: ",x$cov_form)
   cat("\nFamily: ",x$family,", Link function:",x$link,"\n")
-  cat("\nNumber of Monte Carlo simulations per iteration: ",x$m," with tolerance ",x$tol,"\n")
-  semethod <- ifelse(x$permutation,"permutation test",
-                     ifelse(x$robust,"robust",ifelse(x$hessian,"hessian","approx")))
-  cat("P-value and confidence interval method: ",semethod,"\n\n")
+  if(x$method%in%c("mcem","mcnr"))cat("\nNumber of Monte Carlo simulations per iteration: ",x$m," with tolerance ",x$tol,"\n")
+  # semethod <- ifelse(x$permutation,"permutation test",
+  #                    ifelse(x$robust,"robust",ifelse(x$hessian,"hessian","approx")))
+  # cat("P-value and confidence interval method: ",semethod,"\n\n")
   dim1 <- dim(x$re.samps)[1]
   pars <- x$coefficients[1:(length(x$coefficients$par)-dim1),c('est','SE','lower','upper')]
   z <- pars$est/pars$SE

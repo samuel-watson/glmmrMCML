@@ -63,6 +63,28 @@ mcmc_sample <- function(Z, L, X, y, beta, family, link, warmup, nsamp, lambda, v
     .Call(`_glmmrMCML_mcmc_sample`, Z, L, X, y, beta, family, link, warmup, nsamp, lambda, var_par, trace, refresh, maxsteps, target_accept)
 }
 
+#' Markov Chain Monte Carlo Maximum Likelihood Algorithm 
+#' 
+#' Full Markov Chain Monte Carlo Maximum Likelihood Algorithm using c++ code and the inbuilt Hamiltonian Monte Carlo MCMC sampler.
+#' 
+#' @param cov An integer matrix with columns of block identifier, dimension of block, function definition, number of variables
+#' in the argument to the funciton, and index of the parameters, respectively. Rows are specific functions of each block.
+#' @param data Vector of data. Created by flattening the matrices in column-major order of the data used in each block.
+#' @param eff_range Vector of values with the effective range parameters of the covariance functions, where required.
+#' @param Z Matrix Z of the GLMM
+#' @param X Matrix X of the GLMM
+#' @param y Vector of observations
+#' @param family Character specifying the family
+#' @param link Character specifying the link function
+#' @param start Vector of starting values for the optimisation
+#' @param trace Integer indicating what to report to the console, 0= nothing, 1-3=ever more detailed output
+#' @param tol Value of the tolerance. The algorithm termninates if differences in values of parameters between
+#' iterations are all less than this value.
+#' @param verbose Logical indicating whether to provide output to the console
+mcml_la <- function(cov, data, eff_range, Z, X, y, family, link, start, usehess = FALSE, tol = 1e-3, verbose = TRUE, trace = 0L, maxiter = 10L) {
+    .Call(`_glmmrMCML_mcml_la`, cov, data, eff_range, Z, X, y, family, link, start, usehess, tol, verbose, trace, maxiter)
+}
+
 #' Likelihood maximisation for the GLMM 
 #' 
 #' Given model data and random effects samples `u`, this function will run the MCML steps to generate new estimates of 

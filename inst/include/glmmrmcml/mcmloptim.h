@@ -55,7 +55,7 @@ public:
   // optimise multivariate normal distribution of random effects
   void d_optim(){
     glmmr::likelihood::D_likelihood<T> ddl(D_,M_->u_);
-    Rbobyqa<glmmr::likelihood::D_likelihood<T>> opt;
+    Rbobyqa<glmmr::likelihood::D_likelihood<T>,std::vector<double> > opt;
     opt.set_upper(upper_t_);
     opt.set_lower(lower_t_);
     opt.control.iprint = trace_;
@@ -70,7 +70,7 @@ public:
   // optimise likelihood conditional on random effects
   void l_optim(){
     glmmr::likelihood::L_likelihood ldl(M_);
-    Rbobyqa<glmmr::likelihood::L_likelihood> opt;
+    Rbobyqa<glmmr::likelihood::L_likelihood,std::vector<double> > opt;
     opt.control.iprint = trace_;
     std::vector<double> start_b;
     start_b.resize(M_->P_);
@@ -90,17 +90,19 @@ public:
   // jointly optimise marginal y and random effects models
   void f_optim(){
     glmmr::likelihood::F_likelihood<T> dl(D_,M_,cov_par_fix_,true,true,sigma_);
-    Rbobyqa<glmmr::likelihood::F_likelihood<T>> opt;
+    Rbobyqa<glmmr::likelihood::F_likelihood<T>, std::vector<double> > opt;
     std::vector<double> lower = lower_b_;
     std::vector<double> allpars;
     allpars.resize(M_->P_);
     Eigen::VectorXd::Map(&allpars[0], beta_.size()) = beta_;
-    for(int i=0; i< theta_.size(); i++) allpars.push_back(theta_(i));
+    for(int i=0; i< theta_.size(); i++) {
+      allpars.push_back(theta_(i));
+      lower.push_back(lower_t_[i]);
+    }
     if(M_->family_=="gaussian"){
       lower.push_back(0.0);
       allpars.push_back(sigma_);
     }
-    for(int i=0; i< theta_.size(); i++) lower.push_back(lower_t_[i]);
     opt.set_lower(lower);
     opt.control.iprint = trace_;
     opt.minimize(dl, allpars);
@@ -108,6 +110,92 @@ public:
     beta_ = Eigen::Map<Eigen::ArrayXd>(beta.data(),M_->P_);//beta_ = pars(0,P_-1);
     theta_ = Eigen::Map<Eigen::ArrayXd>(beta.data()+M_->P_,Q_);//theta_ = pars(P_,P_+Q_-1);
     if(M_->family_=="gaussian") sigma_ = beta[M_->P_+Q_];
+  }
+  
+  //laplace approximation
+  void la_optim(){
+    glmmr::likelihood::LA_likelihood<T> ldl(M_,D_);
+    Rbobyqa<glmmr::likelihood::LA_likelihood<T>,std::vector<double> > opt;
+    opt.control.iprint = trace_;
+    std::vector<double> start_b;
+    start_b.resize(M_->P_ + M_->Q_);
+    for(int i = 0; i< M_->P_; i++)start_b[i] = beta_(i);
+    for(int i = 0; i< M_->Q_; i++)start_b[M_->P_ + i] = (*(M_->u_))(i,0);
+    opt.minimize(ldl, start_b);
+    std::vector<double> beta = opt.par();
+    beta_ = Eigen::Map<Eigen::ArrayXd>(beta.data(),M_->P_);
+    for(int i = 0; i< M_->Q_; i++)(*(M_->u_))(i,0) = beta[M_->P_ + i];
+  }
+  
+  void la_optim_cov(){
+    Eigen::VectorXd w = glmmr::maths::dhdmu(M_->xb_,M_->family_,M_->link_);
+    Eigen::MatrixXd W = Eigen::MatrixXd::Zero(w.size(),w.size());
+    for(int i = 0; i < w.size(); i++){
+      W(i,i) = 1/w(i);
+    }
+    glmmr::likelihood::LA_likelihood_cov<T> ldl(M_,D_,W);//M_->L_
+    Rbobyqa<glmmr::likelihood::LA_likelihood_cov<T>,std::vector<double> > opt;
+    
+    std::vector<double> lower = lower_t_;
+    opt.control.iprint = trace_;
+    std::vector<double> start_t;
+    start_t.resize(Q_);
+    Eigen::VectorXd::Map(&start_t[0], theta_.size()) = theta_;
+    if(M_->family_=="gaussian"||M_->family_=="Gamma"||M_->family_=="beta"){
+      lower.push_back(0.0);
+      start_t.push_back(sigma_);
+    }
+    
+    opt.set_lower(lower);
+    opt.minimize(ldl, start_t);
+    std::vector<double> theta = opt.par();
+    theta_ = Eigen::Map<Eigen::ArrayXd>(theta.data(),Q_);
+    if(M_->family_=="gaussian"||M_->family_=="Gamma"||M_->family_=="beta") sigma_ = theta[Q_];
+  }
+  
+  void la_optim_bcov(){
+    glmmr::likelihood::LA_likelihood_btheta<T> ldl(M_,D_);
+    Rbobyqa<glmmr::likelihood::LA_likelihood_btheta<T>,std::vector<double> > opt;
+    
+    std::vector<double> lower = lower_b_;
+    std::vector<double> allpars;
+    allpars.resize(M_->P_);
+    Eigen::VectorXd::Map(&allpars[0], beta_.size()) = beta_;
+    for(int i=0; i< theta_.size(); i++) {
+      allpars.push_back(theta_(i));
+      lower.push_back(lower_t_[i]);
+    }
+    if(M_->family_=="gaussian"){
+      lower.push_back(0.0);
+      allpars.push_back(sigma_);
+    }
+    opt.set_lower(lower);
+    opt.control.iprint = trace_;
+    
+    opt.minimize(ldl, allpars);
+    
+    std::vector<double> beta = opt.par();
+    beta_ = Eigen::Map<Eigen::ArrayXd>(beta.data(),M_->P_);//beta_ = pars(0,P_-1);
+    theta_ = Eigen::Map<Eigen::ArrayXd>(beta.data()+M_->P_,Q_);//theta_ = pars(P_,P_+Q_-1);
+    if(M_->family_=="gaussian"||M_->family_=="Gamma"||M_->family_=="beta") sigma_ = beta[M_->P_+Q_];
+  }
+  
+  Eigen::MatrixXd hess_la(double tol = 1e-4){
+    glmmr::likelihood::LA_likelihood_btheta<T> hdl(M_,D_);
+    int nvar = M_->P_ + theta_.size();
+    if(M_->family_=="gaussian"||M_->family_=="Gamma"||M_->family_=="beta")nvar++;
+    std::vector<double> ndep;
+    
+    for(int i = 0; i < nvar; i++) ndep.push_back(tol);
+    hdl.os.ndeps_ = ndep;
+    std::vector<double> hessian(nvar * nvar,0.0);
+    std::vector<double> start_b;
+    for(int i = 0; i < M_->P_; i++) start_b.push_back(beta_(i));
+    for(int i = 0; i < theta_.size(); i++) start_b.push_back(theta_(i));
+    if(M_->family_=="gaussian"||M_->family_=="Gamma"||M_->family_=="beta")start_b.push_back(sigma_);
+    hdl.Hessian(start_b,hessian);
+    Eigen::MatrixXd hess = Eigen::Map<Eigen::MatrixXd>(hessian.data(),nvar,nvar);
+    return hess;
   }
   
   // newton raphson step
@@ -121,7 +209,8 @@ public:
     //check if parallelisation is faster or not! if not then declare vectors in advance
     Eigen::MatrixXd zd = M_->get_zu();//M_->Z_ * (*(M_->u_));
     Eigen::VectorXd xb = M_->xb_;
-//#pragma omp parallel for
+    //test if parallelisation improves speed here
+#pragma omp parallel for
     for(int i = 0; i < niter; ++i){
       //Eigen::VectorXd zd = Z_ * u_.col(i);
       Eigen::VectorXd zdu = glmmr::maths::mod_inv_func(xb + zd.col(i), M_->link_);
@@ -129,7 +218,7 @@ public:
       sigmas(i) = std::sqrt((resid - resid.mean()).square().sum()/(resid.size()-1));
       Eigen::VectorXd wdiag = glmmr::maths::dhdmu(xb + zd.col(i),M_->family_,M_->link_);
       for(int j=0; j<n; j++){
-        double var = (M_->family_=="gaussian" || M_->family_=="gamma") ? sigmas(i) : 1.0;
+        double var = (M_->family_=="gaussian" || M_->family_=="Gamma"||M_->family_=="beta") ? sigmas(i) : 1.0;
         XtXW.block(P*i, 0, P, P) +=  (var/(wdiag(j)*wdiag(j)))*((M_->X_.row(j).transpose()) * (M_->X_.row(j)));
         Wu(j,i) += (var/wdiag(j))*resid(j);
       }

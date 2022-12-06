@@ -156,7 +156,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              
                              
                              #check starting values
-                             if(family%in%c("gaussian")){
+                             if(family%in%c("gaussian","Gamma","beta")){
                                if(missing(start)){
                                  if(verbose)message("starting values not set, setting defaults")
                                  start <- c(self$mean_function$parameters,self$covariance$parameters,self$var_par)
@@ -374,7 +374,28 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              } else {
                                # use internal mcmc sampler
                                if(verbose)message("Using in-built MCMC sampler.")
-                               
+                               # used for debugging
+                               # args1 <<- append(self$covariance$get_D_data(),
+                               #                  list(
+                               #                    eff_range = self$covariance$eff_range,
+                               #                    Z=as.matrix(self$covariance$Z),
+                               #                    X=as.matrix(self$mean_function$X),
+                               #                    y=y,
+                               #                    family=self$mean_function$family[[1]],
+                               #                    link=self$mean_function$family[[2]],
+                               #                    start = theta,
+                               #                    mcnr = method=="mcnr",
+                               #                    m = self$mcmc_options$samps,
+                               #                    maxiter = max.iter,
+                               #                    warmup = self$mcmc_options$warmup,
+                               #                    tol=tol,
+                               #                    verbose = verbose,
+                               #                    lambda = self$mcmc_options$lambda,
+                               #                    trace=trace,
+                               #                    refresh = self$mcmc_options$refresh,
+                               #                    maxsteps = self$mcmc_options$maxsteps,
+                               #                    target_accept = self$mcmc_options$target_accept
+                               #                  ))
                                res <- do.call(mcml_full,append(self$covariance$get_D_data(),
                                                                list(
                                                                  eff_range = self$covariance$eff_range,
@@ -397,7 +418,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                                                  target_accept = self$mcmc_options$target_accept
                                                                )))
                                theta[parInds$b] <-  res$beta
-                               if(self$mean_function$family[[1]] == "gaussian")theta[parInds$sig] <- res$sigma
+                               if(self$mean_function$family[[1]] %in% c("gaussian","Gamma","beta"))theta[parInds$sig] <- res$sigma
                                theta[parInds$cov] <- res$theta
                                not_conv <- !res$converged
                                dsamps <- res$u
@@ -571,6 +592,234 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              #self$check(verbose=FALSE)
                              
                              return(out)
+                           },
+                           #'@description
+                           #'Maximum Likelihood model fitting with Laplace Approximation
+                           #'
+                           #'@details
+                           #'**MCMCML**
+                           #'Fits generalised linear mixed models using Laplce approximation
+                           #'
+                           #'@param y A numeric vector of outcome data
+                           #'@param start Optional. A numeric vector indicating starting values for the model parameters. 
+                           #'@param verbose logical indicating whether to provide detailed algorithm feedback.
+                           #'@return A `mcml` object
+                           #' @seealso \link[glmmrBase]{Model}, \link[glmmrBase]{Covariance}, \link[glmmrBase]{MeanFunction} 
+                           #'@examples
+                           #'\dontrun{
+                           #'df <- nelder(~(cl(10)*t(5)) > ind(10))
+                           #' df$int <- 0
+                           #' df[df$cl > 5, 'int'] <- 1
+                           #' # specify parameter values in the call for the data simulation below
+                           #' des <- ModelMCML$new(
+                           #'   covariance = list( formula = ~ (1|gr(cl)*ar1(t)),
+                           #'                      parameters = c(0.25,0.7)), 
+                           #'   mean = list(formula = ~ factor(t) + int - 1,
+                           #'                         parameters = c(rep(0,5),-0.2)),
+                           #'   data = df,
+                           #'   family = stats::binomial()
+                           #' )
+                           #' ysim <- des$sim_data() # simulate some data from the model
+                           #' fit1 <- des$LA(y = ysim)
+                           #'}
+                           #'@md
+                           LA = function(y,
+                                         start,
+                                         verbose = FALSE){
+                             
+                             trace <- ifelse(verbose,1,0)
+                             ### DO SOME BASIC CHECKS ON Y TO MAKE SURE IT DOESN'T CAUSE ERROR!
+                             if(self$mean_function$family[[1]]=="binomial"){
+                               if(!all(y==0 | y==1))stop("y must be 0 or 1")
+                             } else if(self$mean_function$family[[1]]=="poisson"){
+                               if(any(y <0) || any(y%%1 != 0))stop("y must be integer >= 0")
+                             } else if(self$mean_function$family[[1]]=="beta"){
+                               if(any(y<0 || y>1))stop("y must be between 0 and 1")
+                             } else if(self$mean_function$family[[1]]=="Gamma") {
+                               if(any(y<=0))stop("y must be positive")
+                             } else if(self$mean_function$family[[1]]=="gaussian" & self$mean_function$family[[2]]=="log"){
+                               if(any(y<=0))stop("y must be positive")
+                             }
+                             
+                             P <- ncol(self$mean_function$X)
+                             R <- length(unlist(self$covariance$parameters))
+                             
+                             family <- self$mean_function$family[[1]]
+                             
+                             parInds <- list(b = 1:P,
+                                             cov = (P+1):(P+R),
+                                             sig = P+R+1)
+                             
+                             if(family%in%c("gaussian")){
+                               mf_parInd <- c(parInds$b,parInds$sig)
+                             } else {
+                               mf_parInd <- c(parInds$b)
+                             }
+                             
+                             orig_par_b <- self$mean_function$parameters
+                             orig_par_cov <- self$covariance$parameters
+                             
+                             
+                             #check starting values
+                             if(family%in%c("gaussian","Gamma","beta")){
+                               if(missing(start)){
+                                 if(verbose)message("starting values not set, setting defaults")
+                                 start <- c(self$mean_function$parameters,self$covariance$parameters,self$var_par)
+                               }
+                               if(length(start)!=(P+R+1))stop("wrong number of starting values")
+                               all_pars <- 1:(P+R+1)
+                             }
+                             
+                             if(family%in%c("binomial","poisson")){
+                               if(!missing(start)){
+                                 if(length(start)!=(P+R)){
+                                   stop("wrong number of starting values")
+                                 }
+                               } else {
+                                 if(verbose)message("starting values not set, setting defaults")
+                                 start <- c(self$mean_function$parameters,self$covariance$parameters)
+                               }
+                               start <- c(start,1)
+                               all_pars <- 1:(P+R)
+                             }
+                             
+                             theta <- start
+                             thetanew <- rep(1,length(theta))
+                             
+                             if(verbose)cat("\nStart: ",start[all_pars],"\n")
+                             
+                             Q = ncol(self$covariance$Z)
+                             invfunc <- self$mean_function$family$linkinv
+                             resb <- do.call(mcml_la,append(self$covariance$get_D_data(),
+                                                                list(
+                                                                  eff_range = self$covariance$eff_range,
+                                                                  Z=as.matrix(self$covariance$Z),
+                                                                  X=as.matrix(self$mean_function$X),
+                                                                  y=y,
+                                                                  family=self$mean_function$family[[1]],
+                                                                  link=self$mean_function$family[[2]],
+                                                                  start = theta,
+                                                                  usehess = FALSE,
+                                                                  tol = 1e-2,
+                                                                  verbose = verbose,
+                                                                  trace = trace
+                                                                )))
+                             
+                             theta[parInds$b] <-  resb$beta
+                             if(self$mean_function$family[[1]] %in% c("gaussian","Gamma","beta"))theta[parInds$sig] <- resb$sigma
+                             theta[parInds$cov] <- resb$theta
+                             
+                             if(verbose)cat("\n\nCalculating standard errors...")
+                             fnpar <- c(1,1,1,2,2,1,2,2,2,2,2,2,2,1)
+                             cov_nms <- as.character(unlist(rev(self$covariance$.__enclos_env__$private$flist)))
+                             cov_pars_freq <- rep(0,length(cov_nms))
+                             ddata <- self$covariance$get_D_data()
+                             pidx <- 0
+                             for(i in 1:length(cov_nms)){
+                               bid <- min(ddata$cov[ddata$cov[,5]==pidx,1])
+                               cov_pars_freq[i] <- sum(fnpar[ddata$cov[ddata$cov[,1]==bid,3]])
+                               bid <- bid + cov_pars_freq[i]
+                             }
+                             
+                             cov_pars_names <- rep(cov_nms,cov_pars_freq)
+                             robust <- FALSE
+                             
+                             SE <- rep(NA,P+R)
+                             #if(!no_warnings&se.method!="approx")warning("Hessian was not positive definite, using approximation")
+                             #if(verbose&se.method=="approx")cat("using approximation\n")
+                             hessused <- FALSE
+                             self$covariance$parameters <- theta[parInds$cov]
+                             if(family%in%c("gaussian")){
+                               orig_sigma <- self$var_par
+                               self$var_par <- theta[parInds$sig]
+                             }
+                             self$check(verbose=FALSE)
+                             invM <- Matrix::solve(self$information_matrix())
+                             self$covariance$parameters <- orig_par_cov
+                             if(family%in%c("gaussian")){
+                               self$var_par <- orig_sigma
+                             }
+                             if(!robust){
+                               SE[1:P] <- sqrt(Matrix::diag(invM))
+                             } else {
+                               xb <-self$mean_function$X%*%theta[parInds$b] 
+                               XSyXb <- Matrix::t(self$mean_function$X)%*%Matrix::solve(self$Sigma)%*%(y - xb)
+                               robSE <- invM %*% XSyXb %*% invM
+                               SE[1:P] <- sqrt(Matrix::diag(robSE))
+                             }
+                             
+                             if(family%in%c("gaussian","Gamma","beta")){
+                               #mf_pars <- theta[c(parInds$b,parInds$sig)]
+                               mf_pars_names <- c(colnames(self$mean_function$X),cov_pars_names,"sigma")
+                               SE <- c(SE,NA)
+                             } else {
+                               #mf_pars <- theta[c(parInds$b)]
+                               mf_pars_names <- c(colnames(self$mean_function$X),cov_pars_names)
+                             }
+                             
+                             res <- data.frame(par = c(mf_pars_names,paste0("d",1:Q)),
+                                               est = c(theta[all_pars],resb$u),
+                                               SE=c(SE,rep(NA,length(resb$u))))
+                             
+                             res$lower <- res$est - qnorm(1-0.05/2)*res$SE
+                             res$upper <- res$est + qnorm(1-0.05/2)*res$SE
+                             
+                             
+                             rownames(resb$u) <- Reduce(c,rev(self$covariance$.__enclos_env__$private$flistlabs))
+                             ## model summary statistics
+                             aic <- do.call(aic_mcml,append(self$covariance$get_D_data(),
+                                                            list(
+                                                              eff_range = self$covariance$eff_range,
+                                                              Z = as.matrix(self$covariance$Z),
+                                                              X = as.matrix(self$mean_function$X),
+                                                              y = y,
+                                                              u = as.matrix(resb$u),
+                                                              family = self$mean_function$family[[1]],
+                                                              link=self$mean_function$family[[2]],
+                                                              beta_par = theta[mf_parInd],
+                                                              cov_par = theta[parInds$cov]
+                                                            )))
+                             
+                             xb <- self$mean_function$X %*% theta[parInds$b]
+                             zd <- self$covariance$Z %*% resb$u
+                             
+                             wdiag <- gen_dhdmu(Matrix::drop(xb),
+                                                family=self$mean_function$family[[1]],
+                                                link = self$mean_function$family[[2]])
+                             
+                             if(self$mean_function$family[[1]]%in%c("gaussian","Gamma","beta")){
+                               wdiag <- theta[parInds$sig] * wdiag
+                             }
+                             
+                             total_var <- var(Matrix::drop(xb)) + var(Matrix::drop(zd)) + mean(wdiag)
+                             condR2 <- (var(Matrix::drop(xb)) + var(Matrix::drop(zd)))/total_var
+                             margR2 <- var(Matrix::drop(xb))/total_var
+                             
+                             
+                             out <- list(coefficients = res,
+                                         converged = TRUE,
+                                         method = "LA",
+                                         hessian = FALSE,
+                                         m = NA,
+                                         tol = NA,
+                                         sim_lik = FALSE,
+                                         aic = aic,
+                                         Rsq = c(cond = condR2,marg=margR2),
+                                         mean_form = as.character(self$mean_function$formula),
+                                         cov_form = as.character(self$covariance$formula),
+                                         family = self$mean_function$family[[1]],
+                                         link = self$mean_function$family[[2]],
+                                         re.samps = resb$u,
+                                         iter = 0)
+                             
+                             class(out) <- "mcml"
+                             
+                             self$mean_function$parameters <- orig_par_b 
+                             self$covariance$parameters <- orig_par_cov
+                             #self$check(verbose=FALSE)
+                             
+                             return(out)
+                             
                            },
                            #' @field mcmc_options There are five options for MCMC sampling that are specified in this list:
                            #' * `warmup` The number of warmup iterations. Note that if using the internal HMC

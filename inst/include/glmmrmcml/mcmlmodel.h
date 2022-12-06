@@ -122,7 +122,7 @@ public:
 
   }
   
-  // update this for all the gradient in glmmr maths
+  // LOG GRADIENT
   Eigen::VectorXd log_grad(const Eigen::VectorXd &v){
     
     Eigen::VectorXd grad = -1.0*v; //Eigen::VectorXd::Zero(v.size());
