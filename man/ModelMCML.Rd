@@ -59,6 +59,9 @@ The options should be provided as a list, e.g. \code{options = list(method="mcnr
 is 1e-4.
 \item \code{trace} Level of detail to report in output: 0 = no detail (default), 1 & 2 = detailed return from BOBYQA
 }
+
+\strong{Laplace approximation}
+Fits generalised linear mixed models using Laplace approximation.
 }
 \examples{
 
@@ -66,6 +69,7 @@ is 1e-4.
 ## Method `ModelMCML$MCML`
 ## ------------------------------------------------
 
+\dontrun{
 df <- nelder(~(cl(10)*t(5)) > ind(10))
 df$int <- 0
 df[df$cl > 5, 'int'] <- 1
@@ -80,7 +84,6 @@ des <- ModelMCML$new(
 )
 ysim <- des$sim_data() # simulate some data from the model
 fit1 <- des$MCML(y = ysim,method="mcnr",usestan=FALSE,verbose=FALSE)
-\dontrun{
 #fits the models using MCEM and report detailed output
 fit2 <- des$MCML(y = ysim,method="mcem")
  #adds a simulated likelihood step after the MCEM algorithm
@@ -89,8 +92,31 @@ fit4 <- des$MCML(y = ysim, sim.lik.step = TRUE)
 # to set better starting values we can use the update_parameters function 
 des$update_parameters(mean = rep(0.5,6), cov = c(0.3,0.7))
 }
+
+## ------------------------------------------------
+## Method `ModelMCML$LA`
+## ------------------------------------------------
+
+\dontrun{
+df <- nelder(~(cl(10)*t(5)) > ind(10))
+df$int <- 0
+df[df$cl > 5, 'int'] <- 1
+# specify parameter values in the call for the data simulation below
+des <- ModelMCML$new(
+  covariance = list( formula = ~ (1|gr(cl)*ar1(t)),
+                     parameters = c(0.25,0.7)), 
+  mean = list(formula = ~ factor(t) + int - 1,
+                        parameters = c(rep(0,5),-0.2)),
+  data = df,
+  family = stats::binomial()
+)
+ysim <- des$sim_data() # simulate some data from the model
+fit1 <- des$LA(y = ysim)
+}
 }
 \seealso{
+\link[glmmrBase]{Model}, \link[glmmrBase]{Covariance}, \link[glmmrBase]{MeanFunction}
+
 \link[glmmrBase]{Model}, \link[glmmrBase]{Covariance}, \link[glmmrBase]{MeanFunction}
 }
 \section{Super class}{
@@ -122,6 +148,7 @@ require larger numbers of steps and so is slower. Smaller numbers are likely req
 \subsection{Public methods}{
 \itemize{
 \item \href{#method-ModelMCML-MCML}{\code{ModelMCML$MCML()}}
+\item \href{#method-ModelMCML-LA}{\code{ModelMCML$LA()}}
 \item \href{#method-ModelMCML-clone}{\code{ModelMCML$clone()}}
 }
 }
@@ -202,7 +229,8 @@ A \code{mcml} object
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{df <- nelder(~(cl(10)*t(5)) > ind(10))
+\preformatted{\dontrun{
+df <- nelder(~(cl(10)*t(5)) > ind(10))
 df$int <- 0
 df[df$cl > 5, 'int'] <- 1
 # specify parameter values in the call for the data simulation below
@@ -216,7 +244,6 @@ des <- ModelMCML$new(
 )
 ysim <- des$sim_data() # simulate some data from the model
 fit1 <- des$MCML(y = ysim,method="mcnr",usestan=FALSE,verbose=FALSE)
-\dontrun{
 #fits the models using MCEM and report detailed output
 fit2 <- des$MCML(y = ysim,method="mcem")
  #adds a simulated likelihood step after the MCEM algorithm
@@ -224,6 +251,57 @@ fit4 <- des$MCML(y = ysim, sim.lik.step = TRUE)
 
 # to set better starting values we can use the update_parameters function 
 des$update_parameters(mean = rep(0.5,6), cov = c(0.3,0.7))
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-ModelMCML-LA"></a>}}
+\if{latex}{\out{\hypertarget{method-ModelMCML-LA}{}}}
+\subsection{Method \code{LA()}}{
+Maximum Likelihood model fitting with Laplace Approximation
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{ModelMCML$LA(y, start, method = "nloptim", use.hess = FALSE, verbose = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{y}}{A numeric vector of outcome data}
+
+\item{\code{start}}{Optional. A numeric vector indicating starting values for the model parameters.}
+
+\item{\code{method}}{String. Either "nloptim" for non-linear optimisation, or "nr" for Newton-Raphson algorithm}
+
+\item{\code{use.hess}}{Logical indicating whether to estimate the standard errors using the Hessian (TRUE) or (approximate) information matrix (FALSE)}
+
+\item{\code{verbose}}{logical indicating whether to provide detailed algorithm feedback.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A \code{mcml} object
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+df <- nelder(~(cl(10)*t(5)) > ind(10))
+df$int <- 0
+df[df$cl > 5, 'int'] <- 1
+# specify parameter values in the call for the data simulation below
+des <- ModelMCML$new(
+  covariance = list( formula = ~ (1|gr(cl)*ar1(t)),
+                     parameters = c(0.25,0.7)), 
+  mean = list(formula = ~ factor(t) + int - 1,
+                        parameters = c(rep(0,5),-0.2)),
+  data = df,
+  family = stats::binomial()
+)
+ysim <- des$sim_data() # simulate some data from the model
+fit1 <- des$LA(y = ysim)
 }
 }
 \if{html}{\out{</div>}}

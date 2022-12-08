@@ -121,6 +121,7 @@ Rcpp::List mcml_full(const Eigen::ArrayXXi &cov,
       L = dmat.genD(0,true,false);
       model.update_beta(beta);
       model.var_par_ = new_var_par;
+      //model.update_zu();
       model.update_L();
     }
     

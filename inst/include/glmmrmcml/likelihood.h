@@ -137,12 +137,10 @@ template<typename T>
 class LA_likelihood_cov : public Functor<std::vector<double> > {
   glmmr::mcmlModel* M_;
   T* D_;
-  Eigen::MatrixXd W_;
 public:
   LA_likelihood_cov(glmmr::mcmlModel* M,
-                    T* D,
-                    Eigen::MatrixXd W) :  
-  M_(M), D_(D), W_(W){} //, W_(W)const Eigen::MatrixXd &WEigen::MatrixXd* L,L_(L),
+                    T* D) :  
+  M_(M), D_(D) {} //, W_(W)const Eigen::MatrixXd &WEigen::MatrixXd* L,L_(L),
   
   double operator()(const std::vector<double> &par) {
     int Q = M_->family_=="gaussian" ? par.size()-1 : par.size();
@@ -153,8 +151,9 @@ public:
     double logl = D_->loglik((*(M_->u_)));
     double ll = M_->log_likelihood();
     Eigen::MatrixXd D = D_->genD(0,false,false);
-    Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * W_ * (M_->Z_) * D;
-    LZWZL.noalias() += Eigen::MatrixXd::Identity(LZWZL.rows(),LZWZL.cols());
+    Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * M_->W_ * (M_->Z_);
+    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(M_->Q_,M_->Q_);
+    LZWZL.noalias() += D.llt().solve(I);
     double LZWdet = glmmr::maths::logdet(LZWZL);
     
     return -1*(ll + logl - 0.5*LZWdet);
@@ -181,18 +180,15 @@ public:
     if(M_->family_=="gaussian")M_->var_par_ = par2[par2.size()-1];
     
     M_->update_beta(beta);
+    M_->update_W();
     D_->update_parameters(theta);
     
     double logl = D_->loglik((*(M_->u_)));
     double ll = M_->log_likelihood();
-    Eigen::VectorXd w = glmmr::maths::dhdmu(M_->xb_,M_->family_,M_->link_);
-    Eigen::MatrixXd W = Eigen::MatrixXd::Zero(w.size(),w.size());
-    for(int i = 0; i < w.size(); i++){
-      W(i,i) = 1/w(i);
-    }
     Eigen::MatrixXd D = D_->genD(0,false,false);
-    Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * W * (M_->Z_) * D;
-    LZWZL.noalias() += Eigen::MatrixXd::Identity(LZWZL.rows(),LZWZL.cols());
+    Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * M_->W_ * (M_->Z_);
+    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(M_->Q_,M_->Q_);
+    LZWZL.noalias() += D.llt().solve(I);
     double LZWdet = glmmr::maths::logdet(LZWZL);
     
     return -1*(ll+logl-0.5*LZWdet);

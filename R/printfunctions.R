@@ -21,8 +21,9 @@ print.mcml <- function(x, ...){
   digits <- 2
   cat(ifelse(x$method%in%c("mcem","mcnr"),
              "Markov chain Monte Carlo Maximum Likelihood Estimation\nAlgorithm: ",
-             "Maximum Likelihood Estimation with Laplace Approximation "),
-      ifelse(x$method=="LA","",ifelse(x$method=="mcem","Markov Chain Expectation Maximisation",
+             "Maximum Likelihood Estimation with Laplace Approximation\nAlgorithm: "),
+      ifelse(x$method%in%c("nloptim","nr"),ifelse(x$method=="nr","Newton-Raphson","BOBYQA"),
+             ifelse(x$method=="mcem","Markov Chain Expectation Maximisation",
                                         "Markov Chain Newton-Raphson")),
       ifelse(x$sim_step," with simulated likelihood step\n","\n"))
   

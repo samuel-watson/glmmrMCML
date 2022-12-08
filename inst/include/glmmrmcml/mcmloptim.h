@@ -128,12 +128,8 @@ public:
   }
   
   void la_optim_cov(){
-    Eigen::VectorXd w = glmmr::maths::dhdmu(M_->xb_,M_->family_,M_->link_);
-    Eigen::MatrixXd W = Eigen::MatrixXd::Zero(w.size(),w.size());
-    for(int i = 0; i < w.size(); i++){
-      W(i,i) = 1/w(i);
-    }
-    glmmr::likelihood::LA_likelihood_cov<T> ldl(M_,D_,W);//M_->L_
+    //Eigen::MatrixXd W = M_->genW();
+    glmmr::likelihood::LA_likelihood_cov<T> ldl(M_,D_);//M_->L_
     Rbobyqa<glmmr::likelihood::LA_likelihood_cov<T>,std::vector<double> > opt;
     
     std::vector<double> lower = lower_t_;
@@ -207,20 +203,25 @@ public:
     Eigen::MatrixXd XtXW = Eigen::MatrixXd::Zero(P*niter,P);
     Eigen::MatrixXd Wu = Eigen::MatrixXd::Zero(n,niter);
     //check if parallelisation is faster or not! if not then declare vectors in advance
+ 
     Eigen::MatrixXd zd = M_->get_zu();//M_->Z_ * (*(M_->u_));
     Eigen::VectorXd xb = M_->xb_;
     //test if parallelisation improves speed here
 #pragma omp parallel for
     for(int i = 0; i < niter; ++i){
       //Eigen::VectorXd zd = Z_ * u_.col(i);
+      M_->update_W(i);
       Eigen::VectorXd zdu = glmmr::maths::mod_inv_func(xb + zd.col(i), M_->link_);
       Eigen::ArrayXd resid = (M_->y_ - zdu).array();
       sigmas(i) = std::sqrt((resid - resid.mean()).square().sum()/(resid.size()-1));
-      Eigen::VectorXd wdiag = glmmr::maths::dhdmu(xb + zd.col(i),M_->family_,M_->link_);
+      XtXW.block(P*i, 0, P, P) = M_->X_.transpose() * M_->W_ * M_->X_;
+      Eigen::VectorXd dmu = glmmr::maths::detadmu(xb + zd.col(i),M_->link_);
+      // Eigen::VectorXd wdiag = glmmr::maths::dhdmu(xb + zd.col(i),M_->family_,M_->link_);
       for(int j=0; j<n; j++){
-        double var = (M_->family_=="gaussian" || M_->family_=="Gamma"||M_->family_=="beta") ? sigmas(i) : 1.0;
-        XtXW.block(P*i, 0, P, P) +=  (var/(wdiag(j)*wdiag(j)))*((M_->X_.row(j).transpose()) * (M_->X_.row(j)));
-        Wu(j,i) += (var/wdiag(j))*resid(j);
+        // double var = (M_->family_=="gaussian" || M_->family_=="Gamma"||M_->family_=="beta") ? sigmas(i) : 1.0;
+        //XtXW.block(P*i, 0, P, P) +=  (var/(wdiag(j)*wdiag(j)))*((M_->X_.row(j).transpose()) * (M_->X_.row(j)));
+        Wu(j,i) += M_->W_(j,j)*dmu(j)*resid(j);
+        //Wu(j,i) += (var/wdiag(j))*resid(j);
       }
     }
     XtXW *= (double)1/niter;
@@ -229,8 +230,65 @@ public:
     XtWXm = XtWXm.inverse();
     Eigen::VectorXd Wum = Wu.rowwise().mean();
     Eigen::VectorXd bincr = XtWXm * (M_->X_.transpose()) * Wum;
+    //Rcpp::Rcout << "\nbincr:\n" << bincr.transpose();
     beta_ += bincr;
     sigma_ = sigmas.mean();
+  }
+  
+  void mcnr_b(){
+    double sigmas;
+    int P = M_->P_;
+    int n = M_->n_;
+    Eigen::VectorXd Wu = Eigen::VectorXd::Zero(n);
+    Eigen::MatrixXd zd = M_->zu_;
+    Eigen::VectorXd xb = M_->xb_;
+    Eigen::VectorXd dmu = glmmr::maths::detadmu(xb + zd.col(0),M_->link_);
+    
+    Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * M_->W_ * (M_->Z_);
+    //Eigen::MatrixXd I = Eigen::MatrixXd::Identity(LZWZL.rows(),LZWZL.cols());
+    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(M_->Q_,M_->Q_);
+    LZWZL.noalias() += M_->D_.llt().solve(I);
+    Eigen::MatrixXd I2 = Eigen::MatrixXd::Identity(LZWZL.rows(),LZWZL.cols());
+    LZWZL = LZWZL.llt().solve(I2);
+    
+    Eigen::VectorXd zdu = glmmr::maths::mod_inv_func(xb + zd.col(0), M_->link_);
+    Eigen::ArrayXd resid = (M_->y_ - zdu).array();
+    sigmas = std::sqrt((resid - resid.mean()).square().sum()/(resid.size()-1));
+    
+    
+    for(int j=0; j<n; j++){
+      Wu(j) += M_->W_(j,j)*dmu(j)*resid(j);
+    }
+    
+    Eigen::MatrixXd XtXW = M_->X_.transpose() * M_->W_ * M_->X_;
+    
+    XtXW = XtXW.inverse();
+    Eigen::VectorXd bincr = XtXW * (M_->X_).transpose() * Wu;
+    Eigen::VectorXd vgrad = M_->log_grad(M_->u_->col(0),false);
+    Eigen::VectorXd vincr = LZWZL * vgrad;
+
+    // Eigen::MatrixXd fisher(LZWZL.rows() +XtXW.rows(), LZWZL.cols() +XtXW.cols() );
+    // fisher.block(0,0,XtXW.rows(),XtXW.cols()) = XtXW;
+    // fisher.block(XtXW.rows(),0,LZWZL.rows(),XtXW.cols()) = M_->Z_.transpose() * M_->W_ * M_->X_;
+    // fisher.block(0,XtXW.cols(),XtXW.rows(),LZWZL.cols()) = M_->X_.transpose() * M_->W_ * M_->Z_ * M_->D_;
+    // fisher.block(XtXW.rows(),XtXW.cols(),LZWZL.rows(),LZWZL.cols()) = LZWZL;
+    // 
+    // Eigen::VectorXd fisher2(LZWZL.rows() +XtXW.rows());
+    // fisher2.segment(0,XtXW.rows()) = (M_->X_.transpose()) * Wu;
+    // fisher2.segment(XtXW.rows(),LZWZL.rows()) = M_->log_grad(M_->u_->col(0));
+    //  
+    // Eigen::VectorXd solu = fisher.llt().solve(fisher2);
+    //  
+    // M_->u_->col(0) += solu.segment(XtXW.rows(),LZWZL.rows());
+    // beta_ += solu.segment(0,XtXW.rows());
+    // 
+    
+    //Rcpp::Rcout << "\nbin: \n"<< bincr.transpose() << "\nvincr:\n" << vincr.transpose();
+    
+     
+    M_->u_->col(0) += vincr;
+    beta_ += bincr;
+    sigma_ = sigmas;
   }
   
   //hessian of model parametere

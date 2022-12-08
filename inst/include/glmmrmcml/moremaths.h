@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <RcppEigen.h>
 #include <Rcpp.h>
+#include <glmmr/maths.h>
 
 // [[Rcpp::depends(RcppEigen)]]
 
@@ -114,6 +115,50 @@ namespace glmmr {
     return ld;
   }
   
+  inline Eigen::VectorXd detadmu(const Eigen::VectorXd& xb,
+                                std::string link) {
+    
+    Eigen::VectorXd wdiag(xb.size());
+    Eigen::VectorXd p(xb.size());
+    const static std::unordered_map<std::string, int> string_to_case{
+      {"log",1},
+      {"identity",2},
+      {"logit",3},
+      {"probit",4},
+      {"inverse",5}
+    };
+    
+    switch (string_to_case.at(link)) {
+    case 1:
+      wdiag = glmmr::maths::exp_vec(-1.0 * xb);
+      break;
+    case 2:
+      for(int i =0; i< xb.size(); i++){
+        wdiag(i) = 1.0;
+      }
+      break;
+    case 3:
+      p = glmmr::maths::mod_inv_func(xb, "logit");
+      for(int i =0; i< xb.size(); i++){
+        wdiag(i) = 1/(p(i)*(1.0 - p(i)));
+      }
+      break;
+    case 4:
+      {
+        Eigen::ArrayXd pinv = gaussian_pdf_vec(xb);
+        wdiag = (pinv.inverse()).matrix();
+        break;
+      }
+    case 5:
+      for(int i =0; i< xb.size(); i++){
+        wdiag(i) = -1.0 * xb(i) * xb(i);
+      }
+      break;
+    
+    }
+    
+    return wdiag;
+  }
   
   }
 

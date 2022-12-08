@@ -597,11 +597,13 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            #'Maximum Likelihood model fitting with Laplace Approximation
                            #'
                            #'@details
-                           #'**MCMCML**
-                           #'Fits generalised linear mixed models using Laplce approximation
+                           #'**Laplace approximation**
+                           #'Fits generalised linear mixed models using Laplace approximation. 
                            #'
                            #'@param y A numeric vector of outcome data
                            #'@param start Optional. A numeric vector indicating starting values for the model parameters. 
+                           #'@param method String. Either "nloptim" for non-linear optimisation, or "nr" for Newton-Raphson algorithm
+                           #'@param use.hess Logical indicating whether to estimate the standard errors using the Hessian (TRUE) or (approximate) information matrix (FALSE)
                            #'@param verbose logical indicating whether to provide detailed algorithm feedback.
                            #'@return A `mcml` object
                            #' @seealso \link[glmmrBase]{Model}, \link[glmmrBase]{Covariance}, \link[glmmrBase]{MeanFunction} 
@@ -625,8 +627,11 @@ ModelMCML <- R6::R6Class("ModelMCML",
                            #'@md
                            LA = function(y,
                                          start,
+                                         method = "nloptim",
+                                         use.hess = FALSE,
                                          verbose = FALSE){
                              
+                             if(!method%in%c("nloptim","nr"))stop("method should be either nr or nloptim")
                              trace <- ifelse(verbose,1,0)
                              ### DO SOME BASIC CHECKS ON Y TO MAKE SURE IT DOESN'T CAUSE ERROR!
                              if(self$mean_function$family[[1]]=="binomial"){
@@ -690,20 +695,38 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              
                              Q = ncol(self$covariance$Z)
                              invfunc <- self$mean_function$family$linkinv
-                             resb <- do.call(mcml_la,append(self$covariance$get_D_data(),
-                                                                list(
-                                                                  eff_range = self$covariance$eff_range,
-                                                                  Z=as.matrix(self$covariance$Z),
-                                                                  X=as.matrix(self$mean_function$X),
-                                                                  y=y,
-                                                                  family=self$mean_function$family[[1]],
-                                                                  link=self$mean_function$family[[2]],
-                                                                  start = theta,
-                                                                  usehess = FALSE,
-                                                                  tol = 1e-2,
-                                                                  verbose = verbose,
-                                                                  trace = trace
-                                                                )))
+                             if(method=="nloptim"){
+                               resb <- do.call(mcml_la,append(self$covariance$get_D_data(),
+                                                              list(
+                                                                eff_range = self$covariance$eff_range,
+                                                                Z=as.matrix(self$covariance$Z),
+                                                                X=as.matrix(self$mean_function$X),
+                                                                y=y,
+                                                                family=self$mean_function$family[[1]],
+                                                                link=self$mean_function$family[[2]],
+                                                                start = theta,
+                                                                usehess = TRUE,
+                                                                tol = 1e-2,
+                                                                verbose = verbose,
+                                                                trace = trace
+                                                              )))
+                             } else {
+                               resb <- do.call(mcml_la_nr,append(self$covariance$get_D_data(),
+                                                              list(
+                                                                eff_range = self$covariance$eff_range,
+                                                                Z=as.matrix(self$covariance$Z),
+                                                                X=as.matrix(self$mean_function$X),
+                                                                y=y,
+                                                                family=self$mean_function$family[[1]],
+                                                                link=self$mean_function$family[[2]],
+                                                                start = theta,
+                                                                usehess = FALSE,
+                                                                tol = 1e-2,
+                                                                verbose = verbose,
+                                                                trace = trace
+                                                              )))
+                             }
+                             
                              
                              theta[parInds$b] <-  resb$beta
                              if(self$mean_function$family[[1]] %in% c("gaussian","Gamma","beta"))theta[parInds$sig] <- resb$sigma
@@ -727,39 +750,46 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              SE <- rep(NA,P+R)
                              #if(!no_warnings&se.method!="approx")warning("Hessian was not positive definite, using approximation")
                              #if(verbose&se.method=="approx")cat("using approximation\n")
-                             hessused <- FALSE
-                             self$covariance$parameters <- theta[parInds$cov]
-                             if(family%in%c("gaussian")){
-                               orig_sigma <- self$var_par
-                               self$var_par <- theta[parInds$sig]
-                             }
-                             self$check(verbose=FALSE)
-                             invM <- Matrix::solve(self$information_matrix())
-                             self$covariance$parameters <- orig_par_cov
-                             if(family%in%c("gaussian")){
-                               self$var_par <- orig_sigma
-                             }
-                             if(!robust){
-                               SE[1:P] <- sqrt(Matrix::diag(invM))
+                             hessused <- usehess#FALSE
+                             if(!use.hess){
+                               self$covariance$parameters <- theta[parInds$cov]
+                               if(family%in%c("gaussian")){
+                                 orig_sigma <- self$var_par
+                                 self$var_par <- theta[parInds$sig]
+                               }
+                               self$check(verbose=FALSE)
+                               invM <- Matrix::solve(self$information_matrix())
+                               self$covariance$parameters <- orig_par_cov
+                               if(family%in%c("gaussian")){
+                                 self$var_par <- orig_sigma
+                               }
+                               if(!robust){
+                                 SE[1:P] <- sqrt(Matrix::diag(invM))
+                               } else {
+                                 xb <-self$mean_function$X%*%theta[parInds$b] 
+                                 XSyXb <- Matrix::t(self$mean_function$X)%*%Matrix::solve(self$Sigma)%*%(y - xb)
+                                 robSE <- invM %*% XSyXb %*% invM
+                                 SE[1:P] <- sqrt(Matrix::diag(robSE))
+                               }
+                               
+                               if(family%in%c("gaussian","Gamma","beta")){
+                                 #mf_pars <- theta[c(parInds$b,parInds$sig)]
+                                 mf_pars_names <- c(colnames(self$mean_function$X),cov_pars_names,"sigma")
+                                 SE <- c(SE,NA)
+                               } else {
+                                 #mf_pars <- theta[c(parInds$b)]
+                                 mf_pars_names <- c(colnames(self$mean_function$X),cov_pars_names)
+                               }
+                               
+                               res <- data.frame(par = c(mf_pars_names,paste0("d",1:Q)),
+                                                 est = c(theta[all_pars],resb$u),
+                                                 SE=c(SE,rep(NA,length(resb$u))))
                              } else {
-                               xb <-self$mean_function$X%*%theta[parInds$b] 
-                               XSyXb <- Matrix::t(self$mean_function$X)%*%Matrix::solve(self$Sigma)%*%(y - xb)
-                               robSE <- invM %*% XSyXb %*% invM
-                               SE[1:P] <- sqrt(Matrix::diag(robSE))
+                               res <- data.frame(par = c(mf_pars_names,paste0("d",1:Q)),
+                                                 est = c(theta[all_pars],resb$u),
+                                                 SE=c(resb$se,rep(NA,length(resb$u))))
                              }
                              
-                             if(family%in%c("gaussian","Gamma","beta")){
-                               #mf_pars <- theta[c(parInds$b,parInds$sig)]
-                               mf_pars_names <- c(colnames(self$mean_function$X),cov_pars_names,"sigma")
-                               SE <- c(SE,NA)
-                             } else {
-                               #mf_pars <- theta[c(parInds$b)]
-                               mf_pars_names <- c(colnames(self$mean_function$X),cov_pars_names)
-                             }
-                             
-                             res <- data.frame(par = c(mf_pars_names,paste0("d",1:Q)),
-                                               est = c(theta[all_pars],resb$u),
-                                               SE=c(SE,rep(NA,length(resb$u))))
                              
                              res$lower <- res$est - qnorm(1-0.05/2)*res$SE
                              res$upper <- res$est + qnorm(1-0.05/2)*res$SE
@@ -798,7 +828,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              
                              out <- list(coefficients = res,
                                          converged = TRUE,
-                                         method = "LA",
+                                         method = method,
                                          hessian = FALSE,
                                          m = NA,
                                          tol = NA,
