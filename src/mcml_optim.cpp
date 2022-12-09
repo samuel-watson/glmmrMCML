@@ -372,7 +372,7 @@ double aic_mcml(const Eigen::ArrayXXi &cov,
   int dof = beta_par.size() + cov_par.size();
   Eigen::VectorXd beta;
   
-  if(family=="gaussian"){
+  if(family=="gaussian" || family=="Gamma" || family=="beta"){
     var_par = beta_par(P);
     //xb = X*beta_par.segment(0,P-1);
     beta = beta_par.segment(0,P);
@@ -384,7 +384,6 @@ double aic_mcml(const Eigen::ArrayXXi &cov,
   glmmr::DData dat(cov,data,eff_range);
   glmmr::MCMLDmatrix dmat(&dat, cov_par);
   glmmr::mcmlModel model(Z,nullptr,X,y,&u,beta,var_par,family,link);
-  
   double dmvvec = dmat.loglik(u);
   double ll = model.log_likelihood();
   

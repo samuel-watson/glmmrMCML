@@ -117,8 +117,8 @@ public:
     zu_ = Z_ * (*u_);
   }
   
-  void update_W(int i = 0){
-    zu_ = Z_ * (*u_);
+  void update_W(int i = 0, bool useL = false){
+    zu_ = useL ? ZL_ * (*u_) : Z_ * (*u_);
     Eigen::VectorXd w = glmmr::maths::dhdmu(xb_ + zu_.col(i),family_,link_);
     double nvar_par = 1.0;
     if(family_=="gaussian"){
@@ -281,9 +281,16 @@ public:
   
   
   
-  double log_likelihood() {
+  double log_likelihood() { //bool useL = false
     Eigen::ArrayXd ll = Eigen::ArrayXd::Zero(niter_);
     Eigen::MatrixXd zd = Z_ * (*u_);
+    // Eigen::MatrixXd zd(n_,niter_); 
+    // if(useL){
+    //   zd = ZL_ * (*u_);
+    // } else {
+    //   zd = Z_ * (*u_);
+    // }
+      
 
 #pragma omp parallel for
     for(int j=0; j<niter_ ; j++){

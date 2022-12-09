@@ -49,7 +49,6 @@ Rcpp::List mcml_la(const Eigen::ArrayXXi &cov,
   Eigen::MatrixXd L = dmat.genD(0,true,false);
   glmmr::mcmlModel model(Z,&L,X,y,&u,beta,var_par,family,link);
   glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,&model, start,trace);
-  model.update_L();
   
   Eigen::ArrayXd diff(start.size());
   double maxdiff = 1;
@@ -69,7 +68,6 @@ Rcpp::List mcml_la(const Eigen::ArrayXXi &cov,
     mc.la_optim();
     newbeta = mc.get_beta();
     model.update_beta(newbeta);
-    //model.update_zu();
     model.update_W();
     mc.la_optim_cov();
     newtheta = mc.get_theta();
@@ -148,6 +146,7 @@ Rcpp::List mcml_la(const Eigen::ArrayXXi &cov,
   //return 0;
   // //if(verbose && !converged) Rcpp::Rcout << " \n Warning: algorithm not converged and reached maximum iterations" << std::endl;
   
+  u = L*u;
   Rcpp::List res = Rcpp::List::create(_["beta"] = beta, _["theta"] = theta,
                                       _["sigma"] = var_par, _["se"] = se,
                                       _["u"] = u);
@@ -200,7 +199,7 @@ Rcpp::List mcml_la_nr(const Eigen::ArrayXXi &cov,
   Eigen::MatrixXd L = dmat.genD(0,true,false);
   glmmr::mcmlModel model(Z,&L,X,y,&u,beta,var_par,family,link);
   glmmr::mcmloptim<glmmr::MCMLDmatrix> mc(&dmat,&model, start,trace);
-  model.update_L();
+  model.update_W(0,true);
   
   Eigen::ArrayXd diff(start.size());
   double maxdiff = 1;
@@ -221,9 +220,7 @@ Rcpp::List mcml_la_nr(const Eigen::ArrayXXi &cov,
     mc.mcnr_b();
     newbeta = mc.get_beta();
     model.update_beta(newbeta);
-    //model.update_zu();
-    model.update_W();
-    //mc.mcnr_u();
+    model.update_W(0,true);
     mc.la_optim_cov();
     newtheta = mc.get_theta();
     if(family=="gaussian"||family=="Gamma"||family=="beta") new_var_par = mc.get_sigma();
@@ -244,10 +241,9 @@ Rcpp::List mcml_la_nr(const Eigen::ArrayXXi &cov,
       L = dmat.genD(0,true,false);
       model.update_beta(beta);
       model.var_par_ = new_var_par;
-      //model.update_zu();
-      model.update_W();
+      model.update_W(0,true);
       model.update_L();
-      model.update_D();
+      //model.update_D();
     }
 
     iter++;
@@ -285,7 +281,7 @@ Rcpp::List mcml_la_nr(const Eigen::ArrayXXi &cov,
     for(int i = 0; i < hess.cols();i++)se(i) = sqrt(hess(i,i));
   }
   // 
-  
+  u = L*u;
   Rcpp::List res = Rcpp::List::create(_["beta"] = beta, _["theta"] = theta,
                                       _["sigma"] = var_par, _["se"] = se,
                                       _["u"] = u);
