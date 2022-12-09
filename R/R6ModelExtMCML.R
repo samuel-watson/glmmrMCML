@@ -145,7 +145,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                              cov = (P+1):(P+R),
                                              sig = P+R+1)
                              
-                             if(family%in%c("gaussian")){
+                             if(family%in%c("gaussian","Gamma","beta")){
                                mf_parInd <- c(parInds$b,parInds$sig)
                              } else {
                                mf_parInd <- c(parInds$b)
@@ -485,21 +485,20 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                  }
                                }
                                  
-                              
                                if(se.method=="approx" || any(is.na(SE[1:P]))){
                                  SE <- rep(NA,P+R)
                                  #if(!no_warnings&se.method!="approx")warning("Hessian was not positive definite, using approximation")
                                  #if(verbose&se.method=="approx")cat("using approximation\n")
                                  hessused <- FALSE
                                  self$covariance$parameters <- theta[parInds$cov]
-                                 if(family%in%c("gaussian")){
+                                 if(family%in%c("gaussian","Gamma","beta")){
                                    orig_sigma <- self$var_par
                                    self$var_par <- theta[parInds$sig]
                                  }
                                  self$check(verbose=FALSE)
                                  invM <- Matrix::solve(self$information_matrix())
                                  self$covariance$parameters <- orig_par_cov
-                                 if(family%in%c("gaussian")){
+                                 if(family%in%c("gaussian","Gamma","beta")){
                                    self$var_par <- orig_sigma
                                  }
                                  if(!robust){
@@ -512,7 +511,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                  }
                                }
                                
-                               if(family%in%c("gaussian")){
+                               if(family%in%c("gaussian","Gamma","beta")){
                                  #mf_pars <- theta[c(parInds$b,parInds$sig)]
                                  mf_pars_names <- c(colnames(self$mean_function$X),cov_pars_names,"sigma")
                                  SE <- c(SE,NA)
@@ -705,7 +704,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                                                 family=self$mean_function$family[[1]],
                                                                 link=self$mean_function$family[[2]],
                                                                 start = theta,
-                                                                usehess = TRUE,
+                                                                usehess = use.hess,
                                                                 tol = 1e-2,
                                                                 verbose = verbose,
                                                                 trace = trace
@@ -720,7 +719,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                                                 family=self$mean_function$family[[1]],
                                                                 link=self$mean_function$family[[2]],
                                                                 start = theta,
-                                                                usehess = FALSE,
+                                                                usehess = use.hess,
                                                                 tol = 1e-2,
                                                                 verbose = verbose,
                                                                 trace = trace
@@ -750,7 +749,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              SE <- rep(NA,P+R)
                              #if(!no_warnings&se.method!="approx")warning("Hessian was not positive definite, using approximation")
                              #if(verbose&se.method=="approx")cat("using approximation\n")
-                             hessused <- usehess#FALSE
+                             hessused <- use.hess#FALSE
                              if(!use.hess){
                                self$covariance$parameters <- theta[parInds$cov]
                                if(family%in%c("gaussian")){

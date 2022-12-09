@@ -58,7 +58,7 @@ public:
     std::vector<double> par2 = par;
     Eigen::Map<Eigen::VectorXd> beta(par2.data(),M_->P_); 
     M_->update_beta(beta);
-    M_->var_par_ = M_->family_=="gaussian"&&!fix_var_ ? par[M_->P_] : fix_var_par_;
+    M_->var_par_ = (M_->family_=="gaussian" || M_->family_=="Gamma" || M_->family_=="beta")&&!fix_var_ ? par[M_->P_] : fix_var_par_;
     double ll = M_->log_likelihood();
     return -1*ll;
   }
@@ -92,7 +92,7 @@ public:
     std::vector<double> theta;
     for(int i=0; i<Q; i++)theta.push_back(par2[M_->P_+i]);
     M_->update_beta(beta);
-    M_->var_par_ = M_->family_=="gaussian"&&!fix_var_ ? par[M_->P_] : fix_var_par_;
+    M_->var_par_ = (M_->family_=="gaussian" || M_->family_=="Gamma" || M_->family_=="beta")&&!fix_var_ ? par[M_->P_] : fix_var_par_;
     double ll = M_->log_likelihood();
     
     D_->update_parameters(theta);
@@ -123,13 +123,20 @@ public:
     int Q = par.size() - M_->P_;
     Eigen::VectorXd v(Q);
     for(int i=0; i<Q; i++)v(i) = par2[M_->P_+i];
-    double logl = D_->loglik(v);
+    //double logl = D_->loglik(v);
+    double logl = v.transpose()*v;
     Eigen::Map<Eigen::VectorXd> beta(par2.data(),M_->P_);
     M_->update_beta(beta);
     M_->u_->col(0) = v;
-    double ll = M_->log_likelihood();
+    //double ll = M_->log_likelihood(true);
+    Eigen::ArrayXd ll(M_->n_);
+    Eigen::VectorXd zd =  M_->ZL_ * v;
+#pragma omp parallel for
+    for(int i = 0; i<M_->n_; i++){
+      ll(i) = glmmr::maths::log_likelihood(M_->y_(i),M_->xb_(i) + zd(i),M_->var_par_,M_->flink);
+    }
     
-    return -1.0*(ll + logl);
+    return -1.0*(ll.sum() - 0.5*logl);
   }
 };
 
@@ -143,20 +150,33 @@ public:
   M_(M), D_(D) {} //, W_(W)const Eigen::MatrixXd &WEigen::MatrixXd* L,L_(L),
   
   double operator()(const std::vector<double> &par) {
-    int Q = M_->family_=="gaussian" ? par.size()-1 : par.size();
+    int Q = (M_->family_=="gaussian" || M_->family_=="Gamma" || M_->family_=="beta") ? par.size()-1 : par.size();
     std::vector<double> theta;
     for(int i = 0; i < Q; i++)theta.push_back(par[i]);
-    if(M_->family_=="gaussian")M_->var_par_ = par[Q];
+    if(M_->family_=="gaussian" || M_->family_=="Gamma" || M_->family_=="beta")M_->var_par_ = par[Q];
     D_->gamma_ = Eigen::Map<Eigen::VectorXd>(theta.data(),theta.size()); 
-    double logl = D_->loglik((*(M_->u_)));
-    double ll = M_->log_likelihood();
-    Eigen::MatrixXd D = D_->genD(0,false,false);
-    Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * M_->W_ * (M_->Z_);
+    //double logl = D_->loglik((*(M_->u_)));
+    double logl = M_->u_->col(0).transpose() * M_->u_->col(0);
+    Eigen::MatrixXd L = D_->genD(0,true,false);
+    Eigen::MatrixXd ZL = M_->Z_ * L;
+    //M_->update_L();
+    
+    Eigen::ArrayXd ll(M_->n_);
+    Eigen::VectorXd zd =  ZL * M_->u_->col(0);
+#pragma omp parallel for
+    for(int i = 0; i<M_->n_; i++){
+      ll(i) = glmmr::maths::log_likelihood(M_->y_(i),M_->xb_(i) + zd(i),M_->var_par_,M_->flink);
+    }
+    
+    //double ll = M_->log_likelihood(true);
+    //Eigen::MatrixXd D = D_->genD(0,false,false);
+    //Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * M_->W_ * (M_->Z_);
+    Eigen::MatrixXd LZWZL = ZL.transpose() * M_->W_ * ZL;
     Eigen::MatrixXd I = Eigen::MatrixXd::Identity(M_->Q_,M_->Q_);
-    LZWZL.noalias() += D.llt().solve(I);
+    LZWZL.noalias() += I;//D.llt().solve(I);
     double LZWdet = glmmr::maths::logdet(LZWZL);
     
-    return -1*(ll + logl - 0.5*LZWdet);
+    return -1*(ll.sum() - 0.5*logl - 0.5*LZWdet);
   }
 };
 
@@ -182,16 +202,30 @@ public:
     M_->update_beta(beta);
     M_->update_W();
     D_->update_parameters(theta);
+    // *(M_->L_) = D_->genD(0,true,false);
+    // M_->update_L();
+    //double logl = D_->loglik((*(M_->u_)));
+    Eigen::MatrixXd L = D_->genD(0,true,false);
+    Eigen::MatrixXd ZL = M_->Z_ * L;
+    double logl = M_->u_->col(0).transpose() * M_->u_->col(0);
+    //double ll = M_->log_likelihood(true);
     
-    double logl = D_->loglik((*(M_->u_)));
-    double ll = M_->log_likelihood();
-    Eigen::MatrixXd D = D_->genD(0,false,false);
-    Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * M_->W_ * (M_->Z_);
+    Eigen::ArrayXd ll(M_->n_);
+    Eigen::VectorXd zd =  ZL * M_->u_->col(0);
+#pragma omp parallel for
+    for(int i = 0; i<M_->n_; i++){
+      ll(i) = glmmr::maths::log_likelihood(M_->y_(i),M_->xb_(i) + zd(i),M_->var_par_,M_->flink);
+    }
+    
+    
+    //Eigen::MatrixXd D = D_->genD(0,false,false);
+    //Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * M_->W_ * (M_->Z_);
+    Eigen::MatrixXd LZWZL = ZL.transpose() * M_->W_ * ZL;
     Eigen::MatrixXd I = Eigen::MatrixXd::Identity(M_->Q_,M_->Q_);
-    LZWZL.noalias() += D.llt().solve(I);
+    LZWZL.noalias() += I;//D.llt().solve(I);
     double LZWdet = glmmr::maths::logdet(LZWZL);
     
-    return -1*(ll+logl-0.5*LZWdet);
+    return -1*(ll.sum()-0.5*logl-0.5*LZWdet);
   }
 };
 

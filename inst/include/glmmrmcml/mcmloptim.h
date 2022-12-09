@@ -240,18 +240,19 @@ public:
     int P = M_->P_;
     int n = M_->n_;
     Eigen::VectorXd Wu = Eigen::VectorXd::Zero(n);
-    Eigen::MatrixXd zd = M_->zu_;
+    //Eigen::MatrixXd zd = M_->zu_;
+    Eigen::VectorXd zd = M_->ZL_ * M_->u_->col(0);
     Eigen::VectorXd xb = M_->xb_;
-    Eigen::VectorXd dmu = glmmr::maths::detadmu(xb + zd.col(0),M_->link_);
+    Eigen::VectorXd dmu = glmmr::maths::detadmu(xb + zd,M_->link_);
     
-    Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * M_->W_ * (M_->Z_);
+    Eigen::MatrixXd LZWZL = M_->ZL_.transpose() * M_->W_ * M_->ZL_;
     //Eigen::MatrixXd I = Eigen::MatrixXd::Identity(LZWZL.rows(),LZWZL.cols());
     Eigen::MatrixXd I = Eigen::MatrixXd::Identity(M_->Q_,M_->Q_);
-    LZWZL.noalias() += M_->D_.llt().solve(I);
+    LZWZL.noalias() += I;//M_->D_.llt().solve(I);
     Eigen::MatrixXd I2 = Eigen::MatrixXd::Identity(LZWZL.rows(),LZWZL.cols());
     LZWZL = LZWZL.llt().solve(I2);
     
-    Eigen::VectorXd zdu = glmmr::maths::mod_inv_func(xb + zd.col(0), M_->link_);
+    Eigen::VectorXd zdu = glmmr::maths::mod_inv_func(xb + zd, M_->link_);
     Eigen::ArrayXd resid = (M_->y_ - zdu).array();
     sigmas = std::sqrt((resid - resid.mean()).square().sum()/(resid.size()-1));
     
