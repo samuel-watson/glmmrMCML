@@ -68,7 +68,6 @@ Rcpp::List mcml_la(const Eigen::ArrayXXi &cov,
     mc.la_optim();
     newbeta = mc.get_beta();
     model.update_beta(newbeta);
-    model.update_W();
     mc.la_optim_cov();
     newtheta = mc.get_theta();
     if(family=="gaussian"||family=="Gamma") new_var_par = mc.get_sigma();
@@ -89,7 +88,6 @@ Rcpp::List mcml_la(const Eigen::ArrayXXi &cov,
       L = dmat.genD(0,true,false);
       model.update_beta(beta);
       //model.update_zu();
-      model.update_W();
       model.var_par_ = new_var_par;
       model.update_L();
     }
@@ -220,7 +218,7 @@ Rcpp::List mcml_la_nr(const Eigen::ArrayXXi &cov,
     mc.mcnr_b();
     newbeta = mc.get_beta();
     model.update_beta(newbeta);
-    model.update_W(0,true);
+    //model.update_W(0,true);
     mc.la_optim_cov();
     newtheta = mc.get_theta();
     if(family=="gaussian"||family=="Gamma"||family=="beta") new_var_par = mc.get_sigma();
@@ -241,7 +239,7 @@ Rcpp::List mcml_la_nr(const Eigen::ArrayXXi &cov,
       L = dmat.genD(0,true,false);
       model.update_beta(beta);
       model.var_par_ = new_var_par;
-      model.update_W(0,true);
+      //model.update_W(0,true);
       model.update_L();
       //model.update_D();
     }

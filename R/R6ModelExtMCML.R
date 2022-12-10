@@ -329,8 +329,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                }
                                
                                not_conv <- iter >= max.iter|any(abs(theta-thetanew)>tol)
-                               if(not_conv&!no_warnings)warning(paste0("algorithm not converged. Max. difference between iterations :",max(abs(theta-thetanew)),". Suggest 
-                                                 increasing m, or trying a different algorithm."))
+                               if(not_conv&!no_warnings)warning(paste0("algorithm not converged. Max. difference between iterations :",round(max(abs(theta-thetanew)),4),". Try increasing m, or a different algorithm."))
                                
                                if(sim.lik.step){
                                  if(verbose)cat("\n\n")
@@ -348,8 +347,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                                                                    family=self$mean_function$family[[1]],
                                                                                    link=self$mean_function$family[[2]],
                                                                                    start = theta,
-                                                                                   trace=trace,
-                                                                                   mcnr = method=="mcnr"
+                                                                                   trace=trace
                                                                                  )))
                                  } else {
                                    newtheta <- do.call(mcml_simlik,append(self$covariance$get_D_data(),
@@ -362,12 +360,13 @@ ModelMCML <- R6::R6Class("ModelMCML",
                                                                             family=self$mean_function$family[[1]],
                                                                             link=self$mean_function$family[[2]],
                                                                             start = theta,
-                                                                            trace=trace,
-                                                                            mcnr = method=="mcnr"
+                                                                            trace=trace
                                                                           )))
                                  }
                                  
-                                 theta[all_pars] <- newtheta
+                                 theta[parInds$b] <-  drop(newtheta$beta)
+                                 if(self$mean_function$family[[1]] %in%c("gaussian","Gamma","beta"))theta[parInds$sig] <- newtheta$sigma
+                                 theta[parInds$cov] <- drop(newtheta$theta)
                                }
                                
                                
@@ -426,7 +425,7 @@ ModelMCML <- R6::R6Class("ModelMCML",
                              
                              
                              
-                             if(verbose)cat("\n\nCalculating standard errors...")
+                             if(verbose)cat("\n\nCalculating standard errors...\n")
                              fnpar <- c(1,1,1,2,2,1,2,2,2,2,2,2,2,1)
                              cov_nms <- as.character(unlist(rev(self$covariance$.__enclos_env__$private$flist)))
                              cov_pars_freq <- rep(0,length(cov_nms))

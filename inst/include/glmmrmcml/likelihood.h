@@ -168,10 +168,22 @@ public:
       ll(i) = glmmr::maths::log_likelihood(M_->y_(i),M_->xb_(i) + zd(i),M_->var_par_,M_->flink);
     }
     
+    double nvar_par = 1.0;
+    if(M_->family_=="gaussian"){
+      nvar_par *= M_->var_par_*M_->var_par_;
+    } else if(M_->family_=="Gamma"){
+      nvar_par *= M_->var_par_;
+    } else if(M_->family_=="beta"){
+      nvar_par *= (1+M_->var_par_);
+    }
+    Eigen::VectorXd w = glmmr::maths::dhdmu(M_->xb_ + zd,M_->family_,M_->link_);
+    w = (w.array().inverse()).matrix();
+    w *= 1/nvar_par;
+    
     //double ll = M_->log_likelihood(true);
     //Eigen::MatrixXd D = D_->genD(0,false,false);
     //Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * M_->W_ * (M_->Z_);
-    Eigen::MatrixXd LZWZL = ZL.transpose() * M_->W_ * ZL;
+    Eigen::MatrixXd LZWZL = ZL.transpose() * w.asDiagonal() * ZL;
     Eigen::MatrixXd I = Eigen::MatrixXd::Identity(M_->Q_,M_->Q_);
     LZWZL.noalias() += I;//D.llt().solve(I);
     double LZWdet = glmmr::maths::logdet(LZWZL);
@@ -200,7 +212,7 @@ public:
     if(M_->family_=="gaussian")M_->var_par_ = par2[par2.size()-1];
     
     M_->update_beta(beta);
-    M_->update_W();
+    //M_->update_W();
     D_->update_parameters(theta);
     // *(M_->L_) = D_->genD(0,true,false);
     // M_->update_L();
@@ -212,6 +224,19 @@ public:
     
     Eigen::ArrayXd ll(M_->n_);
     Eigen::VectorXd zd =  ZL * M_->u_->col(0);
+    
+    double nvar_par = 1.0;
+    if(M_->family_=="gaussian"){
+      nvar_par *= M_->var_par_*M_->var_par_;
+    } else if(M_->family_=="Gamma"){
+      nvar_par *= M_->var_par_;
+    } else if(M_->family_=="beta"){
+      nvar_par *= (1+M_->var_par_);
+    }
+    Eigen::VectorXd w = glmmr::maths::dhdmu(M_->xb_ + zd,M_->family_,M_->link_);
+    w = (w.array().inverse()).matrix();
+    w *= 1/nvar_par;
+    
 #pragma omp parallel for
     for(int i = 0; i<M_->n_; i++){
       ll(i) = glmmr::maths::log_likelihood(M_->y_(i),M_->xb_(i) + zd(i),M_->var_par_,M_->flink);
@@ -220,7 +245,7 @@ public:
     
     //Eigen::MatrixXd D = D_->genD(0,false,false);
     //Eigen::MatrixXd LZWZL = ((M_->Z_).transpose()) * M_->W_ * (M_->Z_);
-    Eigen::MatrixXd LZWZL = ZL.transpose() * M_->W_ * ZL;
+    Eigen::MatrixXd LZWZL = ZL.transpose() * w.asDiagonal() * ZL;
     Eigen::MatrixXd I = Eigen::MatrixXd::Identity(M_->Q_,M_->Q_);
     LZWZL.noalias() += I;//D.llt().solve(I);
     double LZWdet = glmmr::maths::logdet(LZWZL);

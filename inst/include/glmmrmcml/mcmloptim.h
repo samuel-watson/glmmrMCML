@@ -202,27 +202,36 @@ public:
     int n = M_->n_;
     Eigen::MatrixXd XtXW = Eigen::MatrixXd::Zero(P*niter,P);
     Eigen::MatrixXd Wu = Eigen::MatrixXd::Zero(n,niter);
-    //check if parallelisation is faster or not! if not then declare vectors in advance
- 
-    Eigen::MatrixXd zd = M_->get_zu();//M_->Z_ * (*(M_->u_));
+    //Eigen::MatrixXd zd = M_->get_zu();//M_->Z_ * (*(M_->u_));
     Eigen::VectorXd xb = M_->xb_;
+    
+    double nvar_par = 1.0;
+    if(M_->family_=="gaussian"){
+      nvar_par *= M_->var_par_*M_->var_par_;
+    } else if(M_->family_=="Gamma"){
+      nvar_par *= M_->var_par_;
+    } else if(M_->family_=="beta"){
+      nvar_par *= (1+M_->var_par_);
+    }
     //test if parallelisation improves speed here
 #pragma omp parallel for
     for(int i = 0; i < niter; ++i){
-      //Eigen::VectorXd zd = Z_ * u_.col(i);
-      M_->update_W(i);
-      Eigen::VectorXd zdu = glmmr::maths::mod_inv_func(xb + zd.col(i), M_->link_);
-      Eigen::ArrayXd resid = (M_->y_ - zdu).array();
+      Eigen::VectorXd zd = M_->Z_ * M_->u_->col(i);
+      Eigen::VectorXd w = glmmr::maths::dhdmu(xb + zd,M_->family_,M_->link_);
+      w = (w.array().inverse()).matrix();
+      w *= 1/nvar_par;
+      Eigen::VectorXd zdu = glmmr::maths::mod_inv_func(xb + zd, M_->link_);
+      Eigen::ArrayXd resid = (M_->y_ - zdu);
       sigmas(i) = std::sqrt((resid - resid.mean()).square().sum()/(resid.size()-1));
-      XtXW.block(P*i, 0, P, P) = M_->X_.transpose() * M_->W_ * M_->X_;
-      Eigen::VectorXd dmu = glmmr::maths::detadmu(xb + zd.col(i),M_->link_);
-      // Eigen::VectorXd wdiag = glmmr::maths::dhdmu(xb + zd.col(i),M_->family_,M_->link_);
-      for(int j=0; j<n; j++){
-        // double var = (M_->family_=="gaussian" || M_->family_=="Gamma"||M_->family_=="beta") ? sigmas(i) : 1.0;
-        //XtXW.block(P*i, 0, P, P) +=  (var/(wdiag(j)*wdiag(j)))*((M_->X_.row(j).transpose()) * (M_->X_.row(j)));
-        Wu(j,i) += M_->W_(j,j)*dmu(j)*resid(j);
-        //Wu(j,i) += (var/wdiag(j))*resid(j);
-      }
+      XtXW.block(P*i, 0, P, P) = M_->X_.transpose() * w.asDiagonal() * M_->X_;
+      Eigen::VectorXd dmu = glmmr::maths::detadmu(xb + zd,M_->link_);
+      w = w.cwiseProduct(dmu);
+      w = w.cwiseProduct(resid.matrix());
+      Wu.col(i) = w;
+// #pragma omp parallel for
+//       for(int j=0; j<n; j++){
+//         Wu(j,i) += w(j)*dmu(j)*resid(j);
+//       }
     }
     XtXW *= (double)1/niter;
     Eigen::MatrixXd XtWXm = XtXW.block(0,0,P,P);
@@ -230,7 +239,6 @@ public:
     XtWXm = XtWXm.inverse();
     Eigen::VectorXd Wum = Wu.rowwise().mean();
     Eigen::VectorXd bincr = XtWXm * (M_->X_.transpose()) * Wum;
-    //Rcpp::Rcout << "\nbincr:\n" << bincr.transpose();
     beta_ += bincr;
     sigma_ = sigmas.mean();
   }
@@ -239,33 +247,43 @@ public:
     double sigmas;
     int P = M_->P_;
     int n = M_->n_;
-    Eigen::VectorXd Wu = Eigen::VectorXd::Zero(n);
+    //Eigen::VectorXd Wu(n);
     //Eigen::MatrixXd zd = M_->zu_;
     Eigen::VectorXd zd = M_->ZL_ * M_->u_->col(0);
     Eigen::VectorXd xb = M_->xb_;
     Eigen::VectorXd dmu = glmmr::maths::detadmu(xb + zd,M_->link_);
     
-    Eigen::MatrixXd LZWZL = M_->ZL_.transpose() * M_->W_ * M_->ZL_;
+    double nvar_par = 1.0;
+    if(M_->family_=="gaussian"){
+      nvar_par *= M_->var_par_*M_->var_par_;
+    } else if(M_->family_=="Gamma"){
+      nvar_par *= M_->var_par_;
+    } else if(M_->family_=="beta"){
+      nvar_par *= (1+M_->var_par_);
+    }
+    Eigen::VectorXd w = glmmr::maths::dhdmu(xb + zd,M_->family_,M_->link_);
+    w = (w.array().inverse()).matrix();
+    w *= 1/nvar_par;
+    
+    Eigen::MatrixXd LZWZL = M_->ZL_.transpose() * w.asDiagonal() * M_->ZL_;
     //Eigen::MatrixXd I = Eigen::MatrixXd::Identity(LZWZL.rows(),LZWZL.cols());
     Eigen::MatrixXd I = Eigen::MatrixXd::Identity(M_->Q_,M_->Q_);
     LZWZL.noalias() += I;//M_->D_.llt().solve(I);
-    Eigen::MatrixXd I2 = Eigen::MatrixXd::Identity(LZWZL.rows(),LZWZL.cols());
-    LZWZL = LZWZL.llt().solve(I2);
+    //Eigen::MatrixXd I2 = Eigen::MatrixXd::Identity(LZWZL.rows(),LZWZL.cols());
+    LZWZL = LZWZL.llt().solve(I);
     
     Eigen::VectorXd zdu = glmmr::maths::mod_inv_func(xb + zd, M_->link_);
     Eigen::ArrayXd resid = (M_->y_ - zdu).array();
     sigmas = std::sqrt((resid - resid.mean()).square().sum()/(resid.size()-1));
     
+    Eigen::MatrixXd XtXW = M_->X_.transpose() * w.asDiagonal() * M_->X_;
     
-    for(int j=0; j<n; j++){
-      Wu(j) += M_->W_(j,j)*dmu(j)*resid(j);
-    }
-    
-    Eigen::MatrixXd XtXW = M_->X_.transpose() * M_->W_ * M_->X_;
+    w = w.cwiseProduct(dmu);
+    w = w.cwiseProduct(resid.matrix());
     
     XtXW = XtXW.inverse();
-    Eigen::VectorXd bincr = XtXW * (M_->X_).transpose() * Wu;
-    Eigen::VectorXd vgrad = M_->log_grad(M_->u_->col(0),false);
+    Eigen::VectorXd bincr = XtXW * (M_->X_).transpose() * w;
+    Eigen::VectorXd vgrad = M_->log_grad(M_->u_->col(0));
     Eigen::VectorXd vincr = LZWZL * vgrad;
 
     // Eigen::MatrixXd fisher(LZWZL.rows() +XtXW.rows(), LZWZL.cols() +XtXW.cols() );
