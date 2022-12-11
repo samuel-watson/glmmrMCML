@@ -20,10 +20,12 @@ using namespace Rcpp;
 //' @param family Character specifying the family
 //' @param link Character specifying the link function
 //' @param start Vector of starting values for the optimisation
+//' @param usehess Logical inticating whether to estimate the standard errors from the Hessian matrix
 //' @param trace Integer indicating what to report to the console, 0= nothing, 1-3=ever more detailed output
 //' @param tol Value of the tolerance. The algorithm termninates if differences in values of parameters between
 //' iterations are all less than this value.
 //' @param verbose Logical indicating whether to provide output to the console
+//' @param maxiter Integer. Maximum number of algorithm iterations before exiting.
 // [[Rcpp::export]]
 Rcpp::List mcml_la(const Eigen::ArrayXXi &cov,
             const Eigen::ArrayXd &data,
@@ -168,10 +170,12 @@ Rcpp::List mcml_la(const Eigen::ArrayXXi &cov,
 //' @param family Character specifying the family
 //' @param link Character specifying the link function
 //' @param start Vector of starting values for the optimisation
+//' @param usehess Logical inticating whether to estimate the standard errors from the Hessian matrix
 //' @param trace Integer indicating what to report to the console, 0= nothing, 1-3=ever more detailed output
 //' @param tol Value of the tolerance. The algorithm termninates if differences in values of parameters between
 //' iterations are all less than this value.
 //' @param verbose Logical indicating whether to provide output to the console
+//' @param maxiter Integer. Maximum number of algorithm iterations before exiting.
 // [[Rcpp::export]]
 Rcpp::List mcml_la_nr(const Eigen::ArrayXXi &cov,
                    const Eigen::ArrayXd &data,
